@@ -1,0 +1,235 @@
+#!/bin/bash
+
+source /usr/local/bin/jsbach-logger.sh
+source /usr/local/JSBach/conf/variables.conf
+source $DIR/$DIR_PROJECTE/$DIR_CONF/$PORTMIRROR_CONF
+source $DIR/$DIR_PROJECTE/$DIR_SCRIPTS/funcions
+
+######################################################################
+###  Funcions
+######################################################################
+
+fnc_iniciar() {
+
+    ESTAT_BRIDGE=$( $DIR/$DIR_PROJECTE/$DIR_SCRIPTS/bridge estat)
+    if [[ "$ESTAT_BRIDGE" == $DESACTIVAT* ]]; then
+	log_action "PORTMIRROR" "INICIAR" "SE HA INTENTADO INICIAR EL PORTMIRROR PERO DEBERIA ESTAR ENCENDIDO EL BRIDGE"
+        echo "Error, el bridge ha d'estar activat"
+        exit 1
+    fi
+
+    ESTAT=$(fnc_estat)
+    if [[ "$ESTAT" == $ACTIVAT* ]]; then
+	log_action "PORTMIRROR" "INICIAR" "SE HA INTENTADO INICIAR EL PORTMIRROR PERO YA ESTABA ACTIVADO"
+        echo "Ja esta activat"
+        exit 1
+    fi
+
+    if [ -z "$PORTMIRROR_INTERFACE" ]; then
+	log_action "PORTMIRROR" "INICIAR" "SE HA INTENTADO INICIAR EL PORTMIRROR PERO FALTA DEFINIR LA INTERFAZ DONDE SE ENVIAN LAS CAPTURAS"
+        echo "Error falta definir la interface on s'envien les captures"
+        exit 1
+    fi
+
+    if ! ip l l dev "$PORTMIRROR_INTERFACE" > /dev/null 2>&1 ; then
+	log_action "PORTMIRROR" "INICIAR" "SE HA INTENTADO INICIAR EL PORTMIRROR PERO EL PUERTO DONDE SE MANDAN LAS CAPTURAS NO EXISTE [$PORTMIRROR_INTERFACE]"
+        echo "Error, la interface on s'envien les captures $PORTMIRROR_INTERFACE no existeix"
+        exit 1
+    fi
+
+    if [[ $(ip l l dev $PORTMIRROR_INTERFACE | grep "UP") ]]; then
+	log_action "PORTMIRROR" "INICIAR" "SE HA INTENTADO INICIAR EL PORTMIRROR PERO LA INTERFAZ DONDE SE MANDAN LAS CAPTURAS DEBE DE ESTAR DESACTIVADA"
+        echo "Error, la interface on s'envien les captures $PORTMIRROR_INTERFACE ha d'estar desactivada"
+        exit 1
+    fi
+
+    if echo $PORTMIRROR_IF_LANS | grep -q "$PORTMIRROR_INTERFACE"; then
+	log_action "PORTMIRROR" "INICIAR" "SE HA INTENTADO INICIAR EL PORTMIRROR PERO LA INTERFAZ DONDE SE ENVIAN LAS CAPTURAS ESTA DEFINIDA COMO INTERFAZ LAN"
+        echo "Error, la interface on s'envien les captures $PORTMIRROR_INTERFACE ja esta definida com a interface lan"
+        exit 1
+    fi
+    log_action "PORTMIRROR" "INICIAR" "SE HA INICIADO EL PORTMIRRORING"
+    echo "Iniciar"
+
+    for interface in $PORTMIRROR_IF_LANS
+    do
+        echo "Preparant interface lan $interface"
+        tc qdisc add dev $interface clsact 2>/dev/null
+	    tc filter add dev $interface ingress protocol all flower action mirred egress mirror dev $PORTMIRROR_INTERFACE
+	    tc filter add dev $interface egress protocol all flower action mirred egress mirror dev $PORTMIRROR_INTERFACE
+    done
+    echo "Preparant interface sensor $PORTMIRROR_INTERFACE"
+	ip addr flush dev  $PORTMIRROR_INTERFACE
+	ip link set $PORTMIRROR_INTERFACE up
+	ip link set $PORTMIRROR_INTERFACE promisc on
+
+    fnc_estat
+}
+
+fnc_aturar() {
+
+    ESTAT=$(fnc_estat)
+    if [[ "$ESTAT" == $DESACTIVAT* ]]; then
+	log_action "PORTMIRROR" "PARADO" "SE HA INTENTADO PARAR EL PORTMIRRORING PERO YA ESTABA DESACTIVADO"
+        echo "Ja esta desactivat"
+        exit 1
+    fi
+
+    echo "Aturar"
+    for interface in $PORTMIRROR_IF_LANS
+    do
+        tc qdisc del dev $interface clsact 2>/dev/null
+    done
+
+	ip addr flush dev  $PORTMIRROR_INTERFACE
+	ip link set $PORTMIRROR_INTERFACE promisc off
+	ip link set $PORTMIRROR_INTERFACE down
+	log_action "PORTMIRROR" "PARADO" "SE HA PARADO EL PORTMIRRORING"
+}
+
+fnc_configurar() {
+
+    OPCIO_1=$1
+    shift
+
+    case "$OPCIO_1" in
+        "canviar_interface_sensor")
+            PORTMIRROR_INTERFACE=$1
+            sed -i "s/^PORTMIRROR_INTERFACE=.*/PORTMIRROR_INTERFACE=\"$PORTMIRROR_INTERFACE\"/" $DIR/$DIR_PROJECTE/$DIR_CONF/$PORTMIRROR_CONF
+            echo "Interface sensor canviada a $PORTMIRROR_INTERFACE"
+	    log_action "PORTMIRROR" "CONF" "SE HA CAMBIADO LA INTERFAZ DEL PORTMIRROR A [$PORTMIRROR_INTERFACE]"
+            ;;
+        "afegir_interface_lan")
+            PORTMIRROR_IF_LANS=$PORTMIRROR_IF_LANS" "$1
+            sed -i "s/^PORTMIRROR_IF_LANS=.*/PORTMIRROR_IF_LANS=\"$PORTMIRROR_IF_LANS\"/" $DIR/$DIR_PROJECTE/$DIR_CONF/$PORTMIRROR_CONF
+            echo "Interface lan afegida a $PORTMIRROR_IF_LANS"
+	    log_action "PORTMIRROR" "CONF" "SE HA CAMBIADO LA INTERFAZ LAN DEL PORTMIRROR A [$PORTMIRROR_IF_LANS]"
+            ;;
+        "eliminar_interface_lan")
+            PORTMIRROR_IF_LANS=$(echo $PORTMIRROR_IF_LANS | sed "s/$1//g")
+            sed -i "s/^PORTMIRROR_IF_LANS=.*/PORTMIRROR_IF_LANS=\"$PORTMIRROR_IF_LANS\"/" $DIR/$DIR_PROJECTE/$DIR_CONF/$PORTMIRROR_CONF
+            echo "Interface lan eliminada de $PORTMIRROR_IF_LANS"
+	    log_action "PORTMIRROR" "CONF" "SE HA ELIMINADO LA INTERFAZ DEL PORTMIRROR LAN [$PORTMIRROR_IF_LANS]"
+            ;;
+        "modificar_interfaces_lan")
+            sed -i "s/^PORTMIRROR_IF_LANS=.*/PORTMIRROR_IF_LANS=/" $DIR/$DIR_PROJECTE/$DIR_CONF/$PORTMIRROR_CONF
+            interfaces=$1
+            interfaces="${interfaces//,/ }"
+            interfaces="${interfaces%% }"
+            sed -i "s/^PORTMIRROR_IF_LANS=.*/PORTMIRROR_IF_LANS=\"$interfaces\"/" $DIR/$DIR_PROJECTE/$DIR_CONF/$PORTMIRROR_CONF
+            echo "Interfaces lan modificades: $interfaces"
+	    log_action "PORTMIRROR" "CONF" "SE HAN MODIFICADO LAS INTERFACES DEL PORTMIRROR A [$interfaces]"
+            ;;
+        *)  
+            echo "Error falta opcio [canviar_interface_sensor, afegir_interface_lan, eliminar_interface_lan]"
+            exit 1
+            ;;
+    esac
+
+}
+
+fnc_mostrar() {
+    OPCIO_1=$1
+    shift
+
+    case "$OPCIO_1" in
+        "interface_sensor")
+            if ! ip l l dev "$PORTMIRROR_INTERFACE" > /dev/null 2>&1 ; then
+	    log_action "PORTMIRROR" "MOSTRAR" "SE HA MOSTRADO LA INTERFAZ DEL PORTMIRROR"
+                echo ""
+            else
+                echo "$PORTMIRROR_INTERFACE"
+            fi
+            ;; 
+        "interfaces_aptes_sensor")
+             for iface in $(ip -o link show | grep -v br0 | grep -v UP | grep -v lo | awk -F': ' '{print $2}'); do
+                 if ! iw dev 2> /dev/null | grep -qw "$iface"; then
+		     log_action "PORTMIRROR" "MOSTRAR" "SE HA MOSTRADO LA INTERFACES DISPONIBLES PARA EL PORTMIRROR"
+                     echo "$iface"
+                 fi
+            done
+            ;;
+        "interfaces_lan")
+            echo "Interfaces lan: $PORTMIRROR_IF_LANS"
+	    log_action "PORTMIRROR" "MOSTRAR" "SE HA MOSTRADO LA INTERFACES LAN DEL PORTMIRROR"
+            ;;
+        "tot")
+            echo "Mostrant configuracio del port mirror"
+            echo "PORTMIRROR_INTERFACE: $PORTMIRROR_INTERFACE"
+            echo "PORTMIRROR_IF_LANS: $PORTMIRROR_IF_LANS"
+	    log_action "PORTMIRROR" "MOSTRAR" "SE HA MOSTRADO TODO DEL PORTMIRROR"
+            ;;
+        *)  
+            echo "Error falta opcio [interface_sensor, interfaces_lan, tot]"
+            exit 1
+            ;;
+    esac
+}
+
+fnc_estat() {
+
+    log_action "PORTMIRROR" "MOSTRAR" "SE HA MOSTRADO EL ESTADO DEL PORTMIRROR"
+
+    if ! ip l l dev "$PORTMIRROR_INTERFACE" > /dev/null 2>&1 ; then
+        echo "$DESACTIVAT"
+        echo "Error, la interface on s'envien les captures $PORTMIRROR_INTERFACE no existeix"
+        exit 1
+    fi
+
+    if ip -o link show "$PORTMIRROR_INTERFACE" | grep -q PROMISC; then
+        echo "$ACTIVAT"
+        echo "Interface on s'envien les captures $PORTMIRROR_INTERFACE: PROMISC ACTIVAT"
+
+        for interface in $PORTMIRROR_IF_LANS
+        do
+            if tc filter show dev "$interface" ingress 2>/dev/null | grep -q "Mirror to device $PORTMIRROR_INTERFACE" \
+            || tc filter show dev "$interface" egress 2>/dev/null | grep -q "Mirror to device $PORTMIRROR_INTERFACE"
+            then
+                echo "  $interface -> ACTIVAT"
+            else
+                echo "  $interface -> desactivat"
+            fi
+        done
+
+    else
+        echo "$DESACTIVAT"
+        echo "Interface sensor ($PORTMIRROR_INTERFACE): PROMISC DESACTIVAT"
+    fi
+}
+
+######################################################################
+###  MAIN
+######################################################################
+
+MSG="falta [iniciar, aturar, configurar ,estat]"
+
+# Comprovem que hi hagi almenys un argument (la opció)
+if [ $# -lt 1 ]; then
+    echo "$MSG"
+    exit 1
+fi
+
+OPCIO_1=$1
+shift
+
+# Fem switch per executar la funció que toca
+case "$OPCIO_1" in
+    iniciar)
+        fnc_iniciar $@
+        ;;
+    aturar)
+        fnc_aturar $@
+        ;;
+    configurar)
+        fnc_configurar $@
+        ;;
+    mostrar)
+        fnc_mostrar $@
+        ;;
+    estat)
+        fnc_estat $@
+        ;;
+    *)
+        echo "$MSG"
+        ;;
+esac

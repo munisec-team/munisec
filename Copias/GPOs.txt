@@ -1,0 +1,39 @@
+guarroman.local
+
+Contraseñas
+-> Contraseñas
+	Exigir historial de contraseñas -> 24 recordadas
+	La contraseña cumple requisitos complejidad -> Habilitado
+	Longitud minima contraseña -> 12
+	Vigencia maxima contraseña -> 90d
+	Vigencia minima contraseña -> 1d
+-> Bloqueo de cuenta
+	Duración bloqueo cuenta -> 200m
+	Reestablecer bloqueo de cuenta tras -> 15min.
+	Umbral de bloqueo de cuenta -> 5 intentos no válidos
+-> Auditoria
+	Auditar acceso de objetos globales del sistema -> habilitado
+-> Config Audit Avanzada
+	Inicio de sesión de cuenta -> Auditar validación de credenciales -> Aciertos
+	Auditar administracióń de cuentas de equipo -> Aciertos y errores
+	Auditar "" "" "" "" usuario -> Aciertos y errores
+	Auditar bloqueo de cuentas -> Aciertos y errores
+	Auditar cierre de sesión -> Aciertos y errores
+	Auditar inicio de sesión -> Aciertos y errores
+	Auditar cambio de directiva de auditoria -> Aciertos y errores
+	Auditar cambio de directiva autenticación -> Aciertos y errores
+	Auditar uso de privilegios confidenciales -> Aciertos y errores
+	Auditar otros eventos del sistema -> Aciertos y errores
+
+
+ Seguridad Ayto
+-> Config seg
+	Ejecutar todos los administradores en modo de aprobación de administrador -> habilitado
+	Desactivar reproducción automática -> habilitado
+		Desactivar reproducción automatica en -> Todas las unidades
+	Powershell -> Activar la ejecución de script -> activado
+		Directiva de ejecución -> Permitir solo scripts firmados
+
+	Discos extraibles -> Denegar acceso a ejecución -> habilitado	
+	Discos extraibles -> Denegar acceso de escritura -> habilitado
+	Discos extraibles -> Denegar acceso de lectura -> habilitado

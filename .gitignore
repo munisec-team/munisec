@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+
+# OS & editors
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+*.bak
+
+# Credentials & secrets
+.env
+*.env.local
+credenciales*
+*credenciales*
+*credencial*
+passwords*
+secrets*
+
+# Suricata logs & cache
+**/suricata/eve.json
+**/suricata/fast.log
+**/suricata/stats.log
+**/suricata/suricata.log
+**/suricata/cache/
+**/suricata/update/cache/
+
+# Git subdirectories
+**/.git/
+
+# IDEs
+.idea/
+.vscode/
+*.sublime-project
+
+# Project specific
+notion_export/
+*.zip
+*.pdf~
+
+# Windows
+*.docx~

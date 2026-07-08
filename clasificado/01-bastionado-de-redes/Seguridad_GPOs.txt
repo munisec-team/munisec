@@ -1,0 +1,7 @@
+Firewall de windows dominio activo(Posible entrada de ataque si no lo ha ativado benimerda)
+Vulnerabilidad SMBv1(Desactivado, ver vulnerabilidades por si ellos no lo han desactivado)
+Contraseñas(Seguras mas de 12 carácteres, 5 intentos máximo)
+Activada ejecucion de scripts.(No se pueden realizar scripts no cifrados)
+Bloqueada escritura,lectura y ejecución de pendrive(Pendiente hacer en equipos de casa de la cultura y pcs pertenecientes al dominio)
+Opciones de seguridad, control de cuentas de usuario. ejecutar solo administradores.
+Deshabilitar Autorun?Directivas de Reproduccion automatica(Desactivamos reproducción automática, en caso que nos conecten un dispositivo usb si no lo activamos manualmente no se podra accede)

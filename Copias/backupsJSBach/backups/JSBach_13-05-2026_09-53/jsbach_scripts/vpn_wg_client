@@ -1,0 +1,110 @@
+#!/bin/bash
+
+source /usr/local/JSBach/conf/variables.conf
+source "$DIR/$DIR_PROJECTE/$DIR_CONF/$VPN_WG_CONF"
+source /usr/local/bin/jsbach-logger.sh
+
+######################################################################
+###  Funcions
+######################################################################
+
+fnc_iniciar() {
+    echo "Iniciar"
+
+    wg-quick up $vpn_wg_int_router
+    log_action "VPN-CLIENTE" "INICIAR" "SE HA INICIADO LA VPN EN MODO CLIENTE"
+}
+
+fnc_aturar() {
+    echo "Aturar"
+
+    wg-quick down $vpn_wg_int_router
+    log_action "VPN-CLIENTE" "PARAR" "SE HA PARADO LA VPN EN MODO CLIENTE"
+}
+
+fnc_configurar() {    
+    accio=$1
+    shift
+    
+    case "$accio" in
+        guardar)
+            fnc_guardar_config_router $@
+            ;;
+        *)
+            echo "Error falta [guardar]"
+            ;;
+    esac
+}
+
+fnc_mostrar_config_router() {    
+    if [ -f "$vpn_wg_routers_fitxer_conf" ]; then
+        cat "$vpn_wg_routers_fitxer_conf"
+	log_action "VPN-CLIENTE" "CONFIG" "SE HA MOSTRADO LA CONFIGURACIÓN DE LA VPN"
+    else
+        echo "No existeix el fitxer de configuracio."
+    fi
+}
+
+fnc_guardar_config_router() {
+    ruta_conf=$1
+    if [ -z "$ruta_conf" ]; then
+        echo "Error falta [ruta_conf]"
+        exit 1
+    fi
+
+    if [ -d "$ruta_conf" ]; then
+        echo "Error no existeix el fitxer [ruta_conf]"
+        exit 1
+    fi
+
+    cp "$ruta_conf" "$vpn_wg_routers_fitxer_conf"
+    log_action "VPN-CLIENTE" "CONFIG" "SE HA GUARDADO UNA CONFIGURACIÓN DE VPN NUEVA: [$ruta_conf]"
+}
+
+fnc_estat() {
+     if ip a l | grep "$vpn_wg_int_router" | grep -q "UP"; then
+        echo "$ACTIVAT  vpn routers"
+        echo ""
+        ip a l dev $vpn_wg_int_router
+    else
+        echo "$DESACTIVAT  vpn routers"
+    fi
+    log_action "VPN-CLIENTE" "ESTADO" "SE HA MOSTRADO EL ESTADO DE LAS VPNs"
+}
+
+######################################################################
+###  MAIN
+######################################################################
+
+MSG="falta [iniciar, aturar, configurar ,estat]"
+
+# Comprovem que hi hagi almenys un argument (la opció)
+if [ $# -lt 1 ]; then
+    echo "$MSG"
+    exit 1
+fi
+
+OPCIO_1=$1
+shift
+
+# Fem switch per executar la funció que toca
+case "$OPCIO_1" in
+    iniciar)
+        fnc_iniciar $@
+        ;;
+    aturar)
+        fnc_aturar $@
+        ;;
+    configurar)
+        fnc_configurar $@
+        ;;
+    mostrar)
+        fnc_mostrar_config_router $@
+        ;;
+    estat)
+        fnc_estat $@
+        ;;
+    *)
+        echo "$MSG"
+        ;;
+esac

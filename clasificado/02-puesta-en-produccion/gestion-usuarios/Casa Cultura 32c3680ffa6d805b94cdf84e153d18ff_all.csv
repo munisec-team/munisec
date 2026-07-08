@@ -1,0 +1,5 @@
+﻿user,device,password,service,user_role
+admin.cultura,PC-27(pfSense),PfSenseCult#PC27_Control,Web login pfSense,admin
+admin.routercc,PC-25,RouterCult#PC25_Config,JSBach,admin
+BL1,PC-01,Libro01#PC01_Lectura,Biblioteca,user
+BL2,PC-02,Libro02#PC02_Presatamo,Biblioteca,user

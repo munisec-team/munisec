@@ -1,0 +1,287 @@
+#!/bin/bash
+
+source /usr/local/JSBach/conf/variables.conf
+source $DIR/$DIR_PROJECTE/$DIR_SCRIPTS/$FUNCIONS
+
+######################################################################
+###  Funcions
+######################################################################
+
+fnc_iniciar() {
+    if [[ "$($DIR/$DIR_PROJECTE/$DIR_SCRIPTS/bridge estat)" =~ ^$DESACTIVAT ]]; then
+        echo "bridge no esta en execucio"
+        return
+    fi
+
+    if systemctl is-active --quiet dnsmasq; then
+        echo "dnsmasq ja esta en execucio"
+        return
+    fi
+    log_action "DHCP" "INICIAR" "SE HA INICIADO DHCP"
+    echo "Iniciar"
+    if [ $(grep -v "^#" $DIR/$DIR_PROJECTE/$DIR_CONF/$DHCP_CONF | wc -l) -eq 0 ]; then
+        fnc_crear_fitxer_conf
+    fi
+
+    fnc_crear_dnsmasq_conf
+
+    systemctl start dnsmasq
+
+    fnc_estat
+
+    sed -i 's/^dhcp;.*/dhcp;ACTIVAT/' $DIR/$DIR_PROJECTE/$DIR_CONF/$SERVEIS
+}
+
+fnc_crear_dnsmasq_conf() {
+
+    echo "creant fitxer de configuracio"
+    log_action "DHCP" "CREAR_DNSMASQ_CONF" "SE HA CREADO EL FITXERO DE CONFIGURACIÓN"
+    echo "# Configuració generada automàticament" > "$DHCP_DNSMASQ_CONF"
+    echo "bind-interfaces" >> "$DHCP_DNSMASQ_CONF"
+    echo "port=53" >> "$DHCP_DNSMASQ_CONF"
+
+    {
+        # No escoltar en WAN
+        source "$DIR/$DIR_PROJECTE/$DIR_CONF/$IFWAN_CONF"
+        echo "except-interface=$IFW_IFWAN" >> "$DHCP_DNSMASQ_CONF"
+    }
+
+    # Usar DNS que rep la WAN per DHCP
+    echo "resolv-file=/run/systemd/resolve/resolv.conf" >> "$DHCP_DNSMASQ_CONF"
+
+    for LINIA in $(grep -v "^#" "$DIR/$DIR_PROJECTE/$DIR_CONF/$DHCP_CONF"); do
+        DHCP_VID=$(echo "$LINIA" | cut -d';' -f1)
+        DHCP_INICI=$(echo "$LINIA" | cut -d';' -f2)
+        DHCP_FINAL=$(echo "$LINIA" | cut -d';' -f3)
+        DHCP_GATEWAY=$(echo "$LINIA" | cut -d';' -f4)
+        DHCP_DNS1=$(echo "$LINIA" | cut -d';' -f5)
+        DHCP_ACTIVAT=$(echo "$LINIA" | cut -d';' -f6)
+
+        if ! ip link show "br0.$DHCP_VID" | grep -q "UP"; then
+            return 1
+        fi
+
+        if [[ "$DHCP_ACTIVAT" == "$ACTIVAT" ]]; then
+            echo "interface=br0.$DHCP_VID" >> "$DHCP_DNSMASQ_CONF"
+            echo "dhcp-range=interface:br0.$DHCP_VID,$DHCP_INICI,$DHCP_FINAL,12h" >> "$DHCP_DNSMASQ_CONF"
+            echo "dhcp-option=interface:br0.$DHCP_VID,3,$DHCP_GATEWAY" >> "$DHCP_DNSMASQ_CONF"
+            echo "dhcp-option=interface:br0.$DHCP_VID,6,$DHCP_DNS1" >> "$DHCP_DNSMASQ_CONF"
+        fi
+    done
+
+    # Configuracio wifi
+    {
+
+        source "$DIR/$DIR_PROJECTE/$DIR_CONF/$WIFI_DHCP_CONF"
+        source "$DIR/$DIR_PROJECTE/$DIR_CONF/$WIFI_HOSTAPD_CONF"
+
+        if ! ip link show "$interface" | grep -q "UP"; then
+            echo "wifi $interface no esta activada"
+            return 1
+        fi
+
+        if [[ "$wifi_dhcp_actiu" == "$ACTIVAT" ]]; then
+            source "$DIR/$DIR_PROJECTE/$DIR_CONF/$WIFI_HOSTAPD_CONF"
+            echo "interface=$interface" >> "$DHCP_DNSMASQ_CONF"
+            echo "dhcp-range=interface:$interface,$wifi_ip_inicial,$wifi_ip_final,12h" >> "$DHCP_DNSMASQ_CONF"
+            echo "dhcp-option=interface:$interface,3,$wifi_gateway" >> "$DHCP_DNSMASQ_CONF"
+            echo "dhcp-option=interface:$interface,6,$wifi_ip_dns1" >> "$DHCP_DNSMASQ_CONF"
+        fi
+    }
+
+    echo "log-dhcp" >> "$DHCP_DNSMASQ_CONF"
+    echo "log-queries" >> "$DHCP_DNSMASQ_CONF"
+
+    echo "Configuració de dnsmasq creada a $DHCP_DNSMASQ_CONF"
+}
+
+fnc_aturar() {
+    log_action "DHCP" "PARADO" "SE HA PARADO DHCP"
+    if ! systemctl is-active --quiet dnsmasq; then
+        echo "dnsmasq no esta en execucio"
+        return
+    fi
+    systemctl stop dnsmasq
+    if [ $# -eq 0 ]; then
+        echo "dnsmasq aturat"
+    fi
+
+    sed -i 's/^dhcp;.*/dhcp;DESACTIVAT/' $DIR/$DIR_PROJECTE/$DIR_CONF/$SERVEIS
+}
+
+fnc_crear_fitxer_conf() {
+
+    for LINIA in $(cat "$DIR/$DIR_PROJECTE/$DIR_CONF/$DHCP_CONF" | grep -v '^#'); do
+        VLANID=$(echo "$LINIA" | cut -d';' -f1)
+        if ! grep ";$VLANID;" "$DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_CONF" > /dev/null; then
+            sed -i "s/^$VLANID;.*$/$NOVA_LINIA/" "$DIR/$DIR_PROJECTE/$DIR_CONF/$DHCP_CONF"
+        fi
+    done
+
+    for LINIA in $(cat "$DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_CONF" | grep -v '^#'); do
+        VLANID=$(echo "$LINIA" | cut -d';' -f2)
+        if ! grep "^$VLANID;" "$DIR/$DIR_PROJECTE/$DIR_CONF/$DHCP_CONF" > /dev/null; then
+            VLAN_IP=$(echo "$LINIA" | cut -d';' -f3)
+            VLAN_IP_PE=$(echo "$LINIA" | cut -d';' -f4 | cut -d'/' -f1)
+            PRIMERA_IP=$(fnc_primera_ip_de_host "$VLAN_IP")
+            DARRERA_IP=$(fnc_darrera_ip_de_host "$VLAN_IP")
+            echo "$VLANID;$PRIMERA_IP;$DARRERA_IP;$VLAN_IP_PE;8.8.8.8;$DESACTIVAT;" >> $DIR/$DIR_PROJECTE/$DIR_CONF/$DHCP_CONF
+        fi
+    done
+}
+
+fnc_guardar_conf() {
+    if [ $# -ne 6 ]; then
+        echo "falta [vid, inici, final, gateway, dns1, activat]"
+        return 1
+    fi
+
+    if [ $(grep -v "^#" $DIR/$DIR_PROJECTE/$DIR_CONF/$DHCP_CONF | wc -l) -eq 0 ]; then
+        fnc_crear_fitxer_conf
+    fi
+
+    vid=$1
+    VLAN_INFO=$(grep ";$vid;" $DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_CONF)
+    if [ -z "$VLAN_INFO" ]; then
+        echo "vlan id $vid no existeix"
+        return 1
+    fi
+    VLAN_IP=$(echo "$VLAN_INFO" | cut -d';' -f3)
+    VLAN_MASC=$(echo "$VLAN_IP" | cut -d'/' -f2)
+
+    inici=$2
+    if ! fnc_validar_ip_host "$inici/$VLAN_MASC" && ! fnc_validar_mateixa_xarxa "$inici/$VLAN_MASC" "$VLAN_IP"; then
+        echo "ip inici $inici/$VLAN_MASC  $VLAN_IP no valid"
+        return 1
+    fi
+    final=$3
+    if ! fnc_validar_ip_host "$final/$VLAN_MASC" && ! fnc_validar_mateixa_xarxa "$final/$VLAN_MASC" "$VLAN_IP"; then
+        echo "ip final $final no valid"
+        return 1
+    fi
+    if ! fnc_validar_ip1_menor_ip2 "$inici/$VLAN_MASC" "$final/$VLAN_MASC"; then
+        echo "ip final $final no es major que ip inici $inici"
+        return 1
+    fi
+    gateway=$4
+    if ! fnc_validar_ip_host "$gateway/$VLAN_MASC" && ! fnc_validar_mateixa_xarxa "$gateway/$VLAN_MASC" "$VLAN_IP"; then
+        echo "ip gateway $gateway no valid "
+        return 1
+    fi
+    dns1=$5
+    if ! fnc_validar_ip "$dns1"; then
+        echo "ip dns1 $dns1 no valid"
+        return 1
+    fi
+    activat=$6
+    if [[ "$activat" != "$ACTIVAT" && "$activat" != "$DESACTIVAT" ]]; then
+        echo "activat $activat no valid"
+        return 1
+    fi
+    log_action "DHCP" "GUARDAR_CONF" "SE HA GUARDADO NUEVA CONIGURACIÓN PARA DHCP. VID: [$1], INICIO_RANGO: [$2], FINAL_RANGO: [$3], GATEWAY: [$4], DNS1:[$5], ACTIVAT[$6]"
+    NOVA_LINIA="$vid;$inici;$final;$gateway;$dns1;$activat;"
+    sed -i "s/^$vid;.*$/$NOVA_LINIA/" "$DIR/$DIR_PROJECTE/$DIR_CONF/$DHCP_CONF"
+    echo " Configuracio guardada correctament"
+}
+
+fnc_mostrar_conf() {
+    fnc_crear_fitxer_conf
+    grep -v "^#" "$DIR/$DIR_PROJECTE/$DIR_CONF/$DHCP_CONF"
+    log_action "DHCP" "MOSTRAR" "SE HA MOSTRADO LA CONFIGURACIÓN DHCP"
+}
+
+fnc_mostrar() {
+    local ACCIO=$1
+    shift
+    case "$ACCIO" in
+        "conf")
+            fnc_mostrar_conf
+            ;;
+        "wifi_conf")
+            source "$DIR/$DIR_PROJECTE/$DIR_CONF/$WIFI_HOSTAPD_CONF"
+
+            if [ -z $interface ]; then
+                echo "ERROR : interface no configurada"
+                return 1
+            fi
+            if ! ip l l | grep "$interface" > /dev/null; then
+                echo "ERROR: no existeix la inteface $interface"
+                return 1
+            fi
+
+            $DIR/$DIR_PROJECTE/$DIR_SCRIPTS/wifi configurar mostrar_wifi_conf
+            ;;
+        *)
+            echo "falta [conf, wifi_conf]"
+            ;;
+    esac
+}
+
+fnc_configurar() {
+    local ACCIO=$1
+    shift
+
+    case "$ACCIO" in
+        "guardar_conf")
+            fnc_guardar_conf $@
+	    ;;
+        "guardar_wifi_conf")
+            source "$DIR/$DIR_PROJECTE/$DIR_CONF/$WIFI_DHCP_CONF"
+	    log_action "DHCP_WIFI" "GUARDAR_CONF" "SE HA GUARDADO LA CONFIGURACIÓN WIFI"
+            $DIR/$DIR_PROJECTE/$DIR_SCRIPTS/wifi configurar guardar_wifi_conf $@
+            ;;
+        *)
+            echo "falta [guardar_conf, guardar_wifi_conf]"
+            ;;
+    esac
+}
+
+fnc_estat() {
+    if systemctl is-active --quiet dnsmasq; then
+        echo "$ACTIVAT"
+        echo ""
+        echo "Fitxer de configuracio"
+        echo ""
+        cat /etc/dnsmasq.conf
+    else
+        echo "$DESACTIVAT"
+    fi
+    log_action "DHCP" "ESTADO" "SE HA MOSTRADO EL ESTADO DHCP"
+}
+
+######################################################################
+###  MAIN
+######################################################################
+
+MSG="falta [iniciar, aturar, configurar ,estat]"
+
+# Comprovem que hi hagi almenys un argument (la opció)
+if [ $# -lt 1 ]; then
+    echo "$MSG"
+    exit 1
+fi
+
+OPCIO_1=$1
+shift
+
+# Fem switch per executar la funció que toca
+case "$OPCIO_1" in
+    iniciar)
+        fnc_iniciar $@
+        ;;
+    aturar)
+        fnc_aturar $@
+        ;;
+    configurar)
+        fnc_configurar $@
+        ;;
+    mostrar)
+        fnc_mostrar $@
+        ;;
+    estat)
+        fnc_estat $@
+        ;;
+    *)
+        echo "$MSG"
+        ;;
+esac

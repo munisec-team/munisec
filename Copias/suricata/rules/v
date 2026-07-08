@@ -1,0 +1,103 @@
+# Nmap SYN scan
+alert tcp any any -> $HOME_NET any (msg:"Nmap SYN scan detected"; flags:S; flow:stateless; detection_filter:track by_src, count 20, seconds 3; classtype:attempted-recon; sid:1002001; rev:1;)
+
+# CURL detection
+alert http any any -> $EXTERNAL_NET any (msg:"CURL User-Agent detected"; flow:established,to_server; http.user_agent; content:"curl/"; nocase; classtype:policy-violation; sid:1002002; rev:1;)
+
+# Nmap UDP scan
+alert udp any any -> $HOME_NET any (msg:"Nmap UDP scan detected"; flow:stateless; detection_filter:track by_src, count 20, seconds 5; classtype:attempted-recon; sid:1002003; rev:1;)
+
+# ICMP sweep
+alert icmp any any -> $HOME_NET any (msg:"ICMP flood or sweep detected"; itype:8; detection_filter:track by_src, count 20, seconds 3; sid:1002004; rev:1;)
+
+# Reverse shell ports
+alert tcp $HOME_NET any -> $HOME_NET [1234,4444,5555,6666,7777,1337] (msg:"Possible reverse shell listener connection"; flow:to_server; classtype:trojan-activity; sid:1002005; rev:1;)
+
+# Netcat
+alert tcp $HOME_NET any -> $HOME_NET any (msg:"Possible Netcat activity detected"; content:"nc "; nocase; classtype:shellcode-detect; sid:1002006; rev:1;)
+
+# Bash shell
+alert tcp $HOME_NET any -> $HOME_NET any (msg:"Possible Bash tcp reverse shell detected"; content:"/bin/bash"; nocase; classtype:shellcode-detect; sid:1002007; rev:1;)
+alert udp $HOME_NET any -> $HOME_NET any (msg:"Possible Bash udp reverse shell detected"; content:"/bin/bash"; nocase; classtype:shellcode-detect; sid:1002017; rev:1;)
+
+# /dev/tcp
+alert tcp $HOME_NET any -> $HOME_NET any (msg:"Possible /dev/tcp reverse shell"; content:"/dev/tcp/"; nocase; classtype:shellcode-detect; sid:1002008; rev:1;)
+alert udp $HOME_NET any -> $HOME_NET any (msg:"Possible /dev/udp reverse shell"; content:"/dev/tcp/"; nocase; classtype:shellcode-detect; sid:1002018; rev:1;)
+
+# Curl CLI UA
+alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"Suspicious CLI User-Agent curl"; flow:established,to_server; http.user_agent; content:"curl"; nocase; sid:1002009; rev:1;)
+
+# Beaconing
+alert tcp $HOME_NET any -> $HOME_NET any (msg:"Possible beaconing activity"; flags:S; detection_filter:track by_src, count 15, seconds 10; sid:1002010; rev:1;)
+
+# SYN scan internal
+alert tcp $HOME_NET any -> $HOME_NET any (msg:"Possible tcp SYN scan detected"; flags:S; flow:stateless; detection_filter:track by_src, count 20, seconds 3; sid:1002011; rev:1;)
+alert udp $HOME_NET any -> $HOME_NET any (msg:"Possible udp SYN scan detected"; flags:S; flow:stateless; detection_filter:track by_src, count 20, seconds 3; sid:1002021; rev:1;)
+
+
+# Gobuster User-Agent
+alert http $HOME_NET any -> $EXTERNAL_NET any (
+    msg:"Gobuster User-Agent detected";
+    flow:established,to_server;
+    http.user_agent;
+    content:"gobuster";
+    nocase;
+    classtype:web-application-attack;
+    sid:1002022;
+    rev:1;
+)
+
+# Multiple HTTP requests - possible directory brute force
+alert http $HOME_NET any -> $EXTERNAL_NET any (
+    msg:"Possible directory brute force scan";
+    flow:established,to_server;
+    detection_filter:track by_src, count 50, seconds 10;
+    classtype:web-application-attack;
+    sid:1002023;
+    rev:1;
+)
+
+# Suspicious file extension enumeration
+alert http $HOME_NET any -> $EXTERNAL_NET any (
+    msg:"Possible web content enumeration";
+    flow:established,to_server;
+    http.uri;
+    pcre:"/\.(php|bak|old|zip|txt|conf|sql)$/Ui";
+    classtype:web-application-attack;
+    sid:1002024;
+    rev:1;
+)
+
+# Excessive 404 responses
+alert http $EXTERNAL_NET any -> $HOME_NET any (
+    msg:"Possible directory enumeration via excessive 404";
+    flow:established,to_client;
+    http.stat_code;
+    content:"404";
+    detection_filter:track by_dst, count 30, seconds 10;
+    classtype:web-application-attack;
+    sid:1002025;
+    rev:1;
+)
+
+# Suspicious directory enumeration paths
+alert http $HOME_NET any -> $EXTERNAL_NET any (
+    msg:"Suspicious directory enumeration request";
+    flow:established,to_server;
+    http.uri;
+    pcre:"/\/(admin|backup|test|dev|api|login)/Ui";
+    classtype:web-application-attack;
+    sid:1002026;
+    rev:1;
+)
+
+# Common web fuzzing tools
+alert http $HOME_NET any -> $EXTERNAL_NET any (
+    msg:"Web fuzzing tool detected";
+    flow:established,to_server;
+    http.user_agent;
+    pcre:"/(gobuster|ffuf|feroxbuster|dirbuster|dirb|wfuzz)/Ui";
+    classtype:web-application-attack;
+    sid:1002027;
+    rev:1;
+)

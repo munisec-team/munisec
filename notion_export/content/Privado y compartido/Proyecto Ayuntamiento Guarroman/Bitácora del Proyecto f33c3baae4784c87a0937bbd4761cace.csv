@@ -1,0 +1,263 @@
+﻿Nombre,✅ Tarea realizada,👤 Persona,📅 Fecha,📝 Descripción / Bitácora,🚧 Bloqueos / Problemas
+Instalación ODOO,Instalación Oddo,kike,26 de marzo de 2026,,Problemas ajenos al equipo de conectividad a internet.
+Revisión y configuración WIFI y Portal Captiu Ccultura,Revisar Configuración Wifi Portal Captiu,kike,24 de marzo de 2026,Procedemos a la configuración de red wifi y portal captiu,"Faltaba un paquete por instalar: wireless-tools(wifi)
+Punto de acceso faltaba un módulo por instalar rewrite(portal captiu)"
+Pruebas Conectividad,Pruebas conectividad pc25 JSBach con Switch(10.2.1.2) Biblioteca,kike,23 de marzo de 2026,Probamos conectividad directa con el Switch,Detectamos que las tarjetas de red no funcionan según lo esperado.
+Instalación gráfica Ubuntu_Server,Instalación gráfica Ubuntu-Server,kike,23 de marzo de 2026,"Se ha procedido a la instalación gráfica de Ubuntu-Server ",El tiempo de la instalación ha sido bastante lento.
+Configurar VPN’s,No realizada,Jose Luis Oliver Herranz,24 de marzo de 2026,Nos sobró 1 hora después de terminar las tareas anteriores e investigamos cómo implementar las VPNs entre routers. Se solucionó un problema en el JSBach de la CC que impedía configurar un servidor VPN secundario por un fallo de codificación de ruta (%20 en vez de /).,"Debido a desconocimiento de cómo funciona una VPN, no se terminó de implementar y queda pendiente para el día siguiente"
+Asistencia General,Realizada,Jose Luis Oliver Herranz,24 de marzo de 2026,"Se ayudó en tareas varias al resto de integrantes del grupo, así como asignar el reparto de tareas.
+
+Se asistió principalmente a Enrique y su configuración del JSBach de la Casa de la Cultura",
+Puesta en marcha Portal Captivo,Realizada,Jose Luis Oliver Herranz,24 de marzo de 2026,"Una vez se arregló el WiFi, nos topamos con varios problemas para poner en marcha el portal captivo. Indagando en el funcionamiento de apache2, se vió que faltaba por activar el módulo rewrite, que hacía que el servicio de apache2 fallase al arrancarse al arrancar el portal captivo.
+
+Se activó el módulo y el portal captivo pasó a funcionar.",
+Revisión de WiFi,Realizada,Jose Luis Oliver Herranz,24 de marzo de 2026,"Se indagó en el código fuente de JSBach para identificar el problema del día anterior, y se descubrió que el problema era un paquete que no se encontraba instalado.
+El paquete era: wireless-tools
+
+Se instaló y la WiFi pasó a funcionar correctamente",
+Asistencia General,Realizada,Jose Luis Oliver Herranz,23 de marzo de 2026,"Se ayudó en tareas varias al resto de integrantes del grupo, así como asignar el reparto de tareas",
+Ayuda General,Realizada,Jose Luis Oliver Herranz,12 de mayo de 2026,"Se ayudó en tareas varias al resto de integrantes del grupo, así como asignar el reparto de tareas",
+Configurar VPN’s entre routers,No realizada,Jose Luis Oliver Herranz,23 de marzo de 2026,"Quedaron pendientes por configurar las VPNs entre los routers de ambos edificios, pero no dio tiempo a acabarlos, por lo que se continuó con esta tarea al día siguiente.",Falta de tiempo
+Reorganización cableado eléctrico,Realizada,Jose Luis Oliver Herranz,23 de marzo de 2026,"Junto con la ayuda de Marcos, se desconectaron todas las regletas de todos los equipos y se volvieron a montar de forma más ordenada y controlada intentado evitar en la medida de lo posible la conexión de 4 o + regletas en cascada.
+
+Gracias a esto, también se pudo llevar a cabo pruebas de Alta Disponibilidad de la red, comprobando si la configuración de los routers y los switches se mantenía y se volvía a aplicar al arrancar el sistema después de un apagón.",Los equipos del Ayuntamiento se tuvieron que conectar en 4 regletas en cascada por falta de tomas de pared
+Instalar iface gráfica PC-28,Realizada,Jose Luis Oliver Herranz,23 de marzo de 2026,Se procedió a la instalación de una interfaz gráfica en el PC-28 previo a instalar el JSBach para mayor comodidad para todos y una administración sencilla,Tardó considerablemente más tiempo del esperado
+Configurar JSBach Ayto,Realizada,Jose Luis Oliver Herranz,23 de marzo de 2026,Se instaló la versión de JSBach de Joan en el equipo PC-28 y se puso a prueba su funcionamiento,"Aunque funcionaba bien en su mayoría, hubieron varios problemas con respecto al WiFI, el portal captivo y el DHCP"
+Cambio de credenciales,Realizada,Jose Luis Oliver Herranz,12 de mayo de 2026,"Se han asignado los distintos usuarios y contraseñas proporcionados por los profesores a diferentes servicios dentro de la red, asegurando que todas las credenciales son usables en algún apartado de la red.
+Se ha creado un registro en Notion de la asociación entre las credenciales y el servicio en el que se encuentran almacenadas.",
+Ayuda general al equipo,Realizada,Jose Luis Oliver Herranz,8 de mayo de 2026,"Ayudado al equipo con problemas varios, así como ayudado a repartir las tareas y llevar un seguimiento de las mismas.",
+OSINT y problemas varios,Realizado,Jose Luis Oliver Herranz,7 de mayo de 2026,"Se documentó todo el proceso llevado a cabo durante las pruebas de OSINT y se pasaron a limpio. Con ese documento, el resto del equipo también tiene una base sobre como hacer su propio informe individual.
+También se ayudó a Alfonso a arreglar ciertos problemas sueltos de la VPN y se revisó Wordpress para que el equipo de benimerda tenga acceso al mismo para poder iniciar su fase de ataque.",
+Preparación Informe OSINT,Realizada,Jose Luis Oliver Herranz,6 de mayo de 2026,"Seguí haciendo el proceso de OSINT hacia varias cuentas de correo como funcionario5guarroman, funcionario3benimerda y funcionar9guarroman. También ayude a solucionar problemas generales al resto del equipo y me preparé para documentarlo todo en un informe.",
+Reorganización ubicación equipos,Realizada,Jose Luis Oliver Herranz,5 de mayo de 2026,"Debido a que se eliminaron los pfSense, se decidió reorganizar la ubicación de los equipos para que sean más accesibles.
+Por ejemplo, el Kali Linux ahora se encuentra justo al lado del switch que es considerado como “Internet”, de forma que tenemos una forma rápida y facil de probar ataques tanto hacia nuestro propio ayuntamiento como al rival, así como tener un equipo fuera de nuestra red para hacer pruebas de acceso (es decir, a qué direcciones IP internas tiene acceso realmente un equipo de fuera de la red interna).",
+OSINT General,En proceso,Jose Luis Oliver Herranz,5 de mayo de 2026,"Se pasó a ayudar al proceso de OSINT de los correos electrónicos.
+Jorge me guió durante el proceso inicial y conseguí vulnerar la contraseña de funcionario5guarroman@fpcheste.com
+Aún quedan pendientes varias cuentas, de entre las cuáles he intentado:
+  • funcionario9guarroman
+  • funcionario1benimerda
+  • funcionario3benimerda",
+Logging VPN JSBach Ayto,Realizada,Jose Luis Oliver Herranz,5 de mayo de 2026,Se ayudó a adaptar los scripts del módulo de la VPN de JSBach para que logee cada acción realizada por el módulo. El JSBach del Ayto ya está configurado completamente con logs y quedaría mirar de qué forma enviar estos logs de forma remota al SOC y hacer lo mismo en el lado del CC,
+"Configuración VPN, esta vez si de verdad de la buena",Realizada,Jose Luis Oliver Herranz,5 de mayo de 2026,"Debido al apagón que reventó los pfSense y a que el módulo de VPN de JSBach ya es funcional, hemos optado por quitar los pfSense del montaje de red y sustituirlos únicamente por los JSBach expuestos a internet, sin ninguna otra capa entre medias.
+Esto será útil para facilitar las configuraciones, reducir la superficie de errores, así como ayudar al equipo de Benimerda a conseguir atacarnos más facilmente.",
+Logging general en JSBach Ayto,Realizado,Jose Luis Oliver Herranz,4 de mayo de 2026,"Se ha ayudado a Alfonso a terminar de implementar las funciones de logging dentro del JSBach. También se ha actualizado el script de los backups para que contemple también las modificaciones a los scripts que se han realizado.
+El siguiente paso a tomar es configurar los equipos para que envíen esta información de forma remota al SOC.",
+Ayuda general,Realizada,Jose Luis Oliver Herranz,29 de abril de 2026,"Se ha ayudado en diversas tareas como la instalación de odoo (que sigue pendiente de revisión), la planificación del envío de logs desde los JSBach hacia el SOC, etc.",
+Script backups JSBach 2,Realizada,Jose Luis Oliver Herranz,29 de abril de 2026,"Se han pulido ciertos parámetros y del programa, asi como se ha añadido comprobaciones de errores y se ha comprobado que el script funciona perfectamente",
+Script backups JSBach,Realizado,Jose Luis Oliver Herranz,28 de abril de 2026,A fecha 28 de abril se ha implementado un parámetro --backup y --restore que permite hacer un backup de todos los ficheros de configuración importantes de JSBach y restaurarlos en un equipo con JSBach recién instalado. Esto nos facilitará el proceso en caso de que vuelva a ocurrir una “tormenta”.,
+Restauración Red,Realizada,Jose Luis Oliver Herranz,28 de abril de 2026,"Se ha ayudado de diversas maneras a poner en marcha la red después de la caída simulada de pfSense, el formateo de los JSBach y el reseteo de los switches",
+Rsyslog hacia SOC,Realizada,Jose Luis Oliver Herranz,27 de abril de 2026,"Se ha ayudado a Carlos, Pau y Jorge ha implementar la recogida de logs remotos desde los switches de red",
+Instalación Kali,Realizada,Jose Luis Oliver Herranz,27 de abril de 2026,Se ha instalado Kali Linux en un equipo de sobra por si fuera necesario para el apartado de hacking etico,
+Instalación de Kali Linux,Realizada,Jose Luis Oliver Herranz,21 de abril de 2026,"Con ayuda de Carlos, está en proceso de instalarse un Kali en uno de los equipos sobrantes para poder pasar a la fase de OSINT y ataques hacia el otro ayuntamiento.",
+Rediseño Estructura Active Directory,Modificación Estructura Organizativa,kike,25 de marzo de 2026,Active Directory,Hemos estado debatiendo la estructura
+Instalación xampp y Worpress,,kike,26 de marzo de 2026,,
+Pruebas de conectividad en equipos del dominio,,kike,,,
+Reinstalación Wazuh,Instalación Wazuh,kike,1 de abril de 2026,"Se procedió a la reinstalación de Wazuh, ya que la integración realizada el día anterior con el bot de Telegram como sistema de notificación de alertas estaba generando conflictos.
+En concreto, se detectaron problemas cuando Wazuh intentaba conectarse a su API, lo que derivaba en errores de acceso a la base de datos",Fallo de conexión con la API
+Reestructuración ad,realizada,Pau Roig Varea,25 de marzo de 2026,Reestructuración AD,Dudas en sobre que manera de montaje es mejor
+Bot Telegram - wazuh,realizada,Pau Roig Varea,13 de abril de 2026,Bot de telegram notificaciones logs,logs generados porque wazuh aun no esta
+Bot telegram servicios,realizada,Pau Roig Varea,20 de abril de 2026,bot de telegram que notifica las actualizaciones de los servicios (hecho con python),no
+securizar wordpress,realizada,Pau Roig Varea,28 de abril de 2026,Securizar el wordpress con Alfonso,no
+OSINT Cristobal Lorite,Realizada,Jorge Cortés Hernández,30 de abril de 2026,Informe de OSINT realizado,
+Asesoramiento de RED TEAM,Asesoramiento,Luis Fuster,14 de mayo de 2026,Razonamiento de modificación de rutas para inyección de equipos y portales captivos.,
+OSINT funcionari3,Realización de OSINT y ataque de fuerza bruta,Luis Fuster,5 de mayo de 2026,,
+Asesoramiento de red,/24 a /30,Luis Fuster,,Propuesta de cambio de red para garantizar su correcto funcionamiento y posible mejora de seguridad,
+Instalación Windows,Instalación de diferentes equipos windows (con ventoy),Luis Fuster,,Ayuda con la instalación de diferentes equipos windows,
+Instalación de Ubuntus,Instalación inicial de los ubuntu servers 24.04,Luis Fuster,,"Instalación del sistema base de ubuntu server, posteriormente se decidió las credenciales y nombres de usuario",
+Cambio de pasta termica,"Equipo que se sobrecalentaba, mantenimiento realizado",Luis Fuster,,"Se identifica un equipo que se sobrecalentaba y se apagaba, se procedió al desmontaje del disipador y al cambio de pasta termica",
+Pruebas Wazuh,Pruebas Wazuh nmap,Luis Fuster,29 de abril de 2026,Con Jorge se realizan pruebas de detección de reglas de Nmap en wazuh,
+Instalar WSL,Instalar wsl,Luis Fuster,29 de abril de 2026 → 29 de abril de 2026,"Wsl para pruebas en pc,23",
+Instalación Sysmon,Instalar sysmon en windows,Luis Fuster,15 de mayo de 2026 → 15 de mayo de 2026,Instalación de sysmon en equipos windows para aumentar la telemetría enviada al Wazuh,
+GPO’s,"Realización de políticas de seguridad ",Luis Fuster,21 de abril de 2026,Realización de políticas de seguridad de directivas en grupo con Kike y Jorge,
+Concienciación SIEM/Suricata,Concienciación al equipo,Luis Fuster,15 de mayo de 2026,Concienciación y resolución de dudas al respecto de wazuh y los ids/ips con el equipo interno de guarroman,
+Bastionado de wordpress,Bastionado de wordpress basico,Luis Fuster,18 de mayo de 2026 → 18 de mayo de 2026,Hardening de versión de PHP y apache,
+Capturas para informe blue team,Capturas pc soc,Luis Fuster,19 de mayo de 2026 → 19 de mayo de 2026,"Capturas de los agentes, reglas de Suricata, syslog de los sw",
+Configuracion de dispositivos de red,Configuracion de Switch de la bilbioteca,Jorge Cortés Hernández,23 de marzo de 2026,"Configuracion de vlans, puertos y guardado de configuracion",insensatez a la hora de intentar conectarse al sw
+Sustitucion Hardware,Sustitucion de tarjetas de red del PC 25 (JSBach Biblio),Jorge Cortés Hernández,23 de marzo de 2026,"El sistema solo detectaba una de las dos tarjetas adicionales. Además, no detecta el cable y se muestra como “NO CARRIER”",
+Instalacion grafica Ubuntu_Server,Instalacion del entorno grafico del Ubuntu Server,Jorge Cortés Hernández,23 de marzo de 2026,"Se instalo el entorno grafico para agilizar la configuracion ",
+Configurar Switchs,Configurar Switch VLAN 6/7 y repaso del otro Switch,"Carlos Delgado ",23 de marzo de 2026,Se ha realizado la configuración de las VLAN 6 y 7,Ninguno
+Notion,Creación y gestión del Notion,"Carlos Delgado ",23 de marzo de 2026,Se ha creado el entorno de trabajo en Notion para la gestión del proyecto,Ninguno
+Quitar interfaz de red,Quitar la interfaz de red PC-29,"Carlos Delgado ",23 de marzo de 2026,Se ha eliminado una interfaz de red innecesaria en el equipo PC-29,Ninguno
+Plantear Reglas del Firewall,Documentar ideas reglas vlan y comentar con el equipo,Alfon Gp,24 de marzo de 2026,He escrito en una hoja las ideas de las reglas que podemos aplicar al firewall de JSBach para securizar las vlan.,
+Soporte en la configuración de la VPN,He ofrecido mi equipo como cliente VPN,Alfon Gp,24 de marzo de 2026,He instalado Wireguard VPN para comprobar que la VPN funciona fuera de nuestras redes de comfort,
+1° Winserver2016,Instalación y configuración de Windows server 2016,"Marcos2K15 ",24 de marzo de 2026,"Se ha borrado el s.o del equipo “inf-sob-05” y luego he instalado win server 2016, al acabar la instalación he instalado los servicios de dns, dhcp y active directory. Aparte he creado dos grupos de usuarios, “FUNCIONARIOS” y “ADMINISTRACION” cada uno con un par de usuarios y cada grupo tiene una carpeta compartida propia. Falta configurar DHCP, probar  usuarios en un equipo win11  pro y más configuración del ad",
+Reestructuracion AD,Reestructuracion AD,Jorge Cortés Hernández,25 de marzo de 2026,Cambiamos la estructura de las OUs,
+Creacion de usuarios y equipos de AD,Realizada,Jorge Cortés Hernández,25 de marzo de 2026,,
+Adicion de equipos al dominio,Realizada,Jorge Cortés Hernández,25 de marzo de 2026,,
+Configurar VPN’s,No realizada,Jose Luis Oliver Herranz,25 de marzo de 2026,"Con ayuda de Alfonso, se ha intentado poner en marcha las VPN’s a través de los routers para garantizar un funcionamiento mínimo, pero no ha sido posible debido a la complejidad que esto suponía.
+
+Como alternativa, hemos propuesto implementar los routers de pfsense en ámbas redes e intentar implementar las VPN’s en ellos.",Complejidad excesiva y desconocimiento del funcionamiento interno de JSBach
+Configuración pfSense,No realizada,Jose Luis Oliver Herranz,25 de marzo de 2026,"Se ha procedido a poner en marcha los routers pfSense asignándoles IP’s acorde a lo necesario en el plano.
+
+No se ha terminado de implementar hoy nada debido a problemas de asignación de IP’s, pero el problema ya está identificado y se procederá a implementarlos el día siguiente.","Fallos de conectividad, bloqueos del Firewall e interfaces mal configuradas"
+Gestionar usuarios y contraseñas,Gestion de los usuarios y contraseñas principales,"Carlos Delgado ",24 de marzo de 2026,Crear y añadir los usuarios en Notion,Ninguno
+Añadir los equipos a AD,Añadir los equipos a AD,"Carlos Delgado ",25 de marzo de 2026,"Añadir ordenadores PC-13, PC-29 y PC-25 al dominio de guarroman.local",Conexión por el DNS al AD
+Instalación ubuntu,realizada,Pau Roig Varea,26 de marzo de 2026,Un pc trabajo se elimina Windows y instalo Ubuntu para poner un wordpress,
+Implementación de la VPN,No cumplida,Alfon Gp,25 de marzo de 2026,"He estado investigando junto a Jose Luis la posibilidad de implementar la VPN en el JSBach, pero al final lo vimos inviable y decidimos configurarlo en pfsense, mañana probaremos otra vez",
+Implementación VPN pfsense,Trabajando en ello,Alfon Gp,26 de marzo de 2026,"Hoy hemos estado probando la extensión de wireguard en pfsense y es mas agradable de trabajar con el, seguimos investigando para su correcto funcionamiento ",
+Me quiero cortar los cojones VPN,No realizada,Jose Luis Oliver Herranz,26 de marzo de 2026,"Se soluciona el problema del día anterior con respecto a la conectividad WAN y se procede a instalar la extensión de WireGuard para pfSense con la ayuda de Alfonso.
+Se intentó configurar y se avanzó considerablemente, pero el tunel sigue sin funcionar a la fecha de hoy, por lo que se pospone la tarea para el lunes 30 de marzo.",Desconocimiento sobre el funcionamiento de WireGuard y falta de transparencia con respecto a los fallos generados por el módulo.
+Configuración WAN temporal,Realizada,Jose Luis Oliver Herranz,26 de marzo de 2026,"Debido a problemas de conectividad en la red de clase, configuré mi portátil para que actúe como “Internet” de forma que el resto del grupo pueda trabajar con normalidad.
+
+Nos topamos con varios problemas pero se terminaron solucionando.","Fallos de configuración silenciosos, configuraciones erróneas y configuraciones faltantes de las que hemos tardado considerablemente en darnos cuenta."
+Logo Guarroman,realizada,Pau Roig Varea,26 de marzo de 2026,digitalizar logo guarroman gimp,
+Restaurar conexión a Internet,Realizada,Jose Luis Oliver Herranz,30 de marzo de 2026,"Debido a que el día anterior se configuraron los pfSense en ambos lados de la red para habilitar la configuración de la VPN, se perdió la conectividad con la WAN y el resto de la red no tenía acceso a Internet.
+Pasadas unas horas, después de probar muchas cosas, se terminó solucionando.","El problema venía principalmente de una configuración que estábamos pasando por alto en el pfSense.
+El último día se desactivó el firewall para poder hacer pruebas de VPN correctamente, pero al hacerlo también deshabilitamos las funciones NAT, lo que hacía que los paquetes no se les devolviesen a su respectivo origen y se perdieran en el limbo.
+
+Se volvió a activar el firewall y se solucionó el problema."
+Ya no me quiero cortar los cojones VPN,Realizada,Jose Luis Oliver Herranz,30 de marzo de 2026,"Por algún motivo, al apagar los equipos durante el fin de semana del 28-29 de marzo, al volver a encenderlos hoy lunes 30, las VPNs se encontraban configuradas y con comunicación entre ambos extremos.",
+Fallo de conexión Switch CC,Realizada,Jose Luis Oliver Herranz,30 de marzo de 2026,"Con ayuda de Alfonso, una vez solucionados los problemas de la falta de conectividad y las VPNs, fuimos a probar la conectividad de los equipos de la CC, ya que era una red diferente del Ayto, y nos topamos con la sorpresa de que no estaban recibiendo IP por DHCP.
+
+Alfonso descubrió que era problema del cable físico, se reemplazó y volvió a funcionar.","Nos costó un rato darnos cuenta de que ese era el fallo, teniendo en cuenta que ese cable ya fue usado anteriormente y parecía funcionar correctamente."
+Plugins wordpress,realizada,Pau Roig Varea,30 de marzo de 2026,Instalar plugins de seguridad en wordpress,Si
+Configuración AD,Final configuración AD,"Marcos2K15 ",31 de marzo de 2026,"Se ha corregido la configuración del active directory eliminando configuraciones y cosas inecesarias y he ordenando todo de forma más clara y ordenada, y se han dado permisos distintos a cada grupo del ayuntamiento y casa cultural. ",
+Error AD,Error solucionado AD,"Marcos2K15 ",31 de marzo de 2026,,
+Conexion Ccultura,"Realizado ",Alfon Gp,30 de marzo de 2026,Este dia estuvimos verificando y terminando de configurar la red de C.Cultura ya que la Biblioteca Publica aun no estaba conectada a red,
+Arreglando la red,Realizado,Alfon Gp,30 de marzo de 2026,"Hubo un problema con la red y perdimos la colectividad con Internet, el problema fue que previamente probando parametros de la VPN deshabilitamos el firewall desde el entorno web de pfsense que tambien deshabilita el NAT",
+Intento de conexion con la VPN,No realizado,Alfon Gp,31 de marzo de 2026,"Hemos estado probando la conexion VPN para que intentara conectar el cliente con otro cliente de la otra red, pero de momento lo hemos dejado de un lado y nos hemos puesto con otras cosas",
+Progreso Wazuh,realizada,"Marcos2K15 ",14 de abril de 2026,"Restauracion de la contraseña, se nos habia olvidado la contraseña del wazuh y gracias a un script hemos podido crear una contraseña mas sencilla para iniciar sesion en el wazuh",
+Confi. nuevo JSBach,Realizada,"Marcos2K15 ",14 de abril de 2026,"Joan nos ha pedido crear dos JSBach uno para cada apartado del ayuntamiento, en nuestro caso hemos configurado el de la casa de la cultura, hemos reinstalado ubuntu 24, y hemos descargado e instalado el ultimo jsbach de aules",
+Añadir Wazuh-Agent,Añadir los endpoints en Wazuh,"Carlos Delgado ",31 de marzo de 2026,Añadir los endpoints en Wazuh con la configuración de Wazuh-Agent en los equipos,
+Instalación vulnerable de JSBach,Instalación vulnerable de JSBach,"Carlos Delgado ",14 de abril de 2026,Eliminar la anterior versión de JSBach y poner la versión vulnerable proporcionada por Joan,Problemas con la red del complejo
+Intento de vulnerar JSBach,Realizado,Jose Luis Oliver Herranz,15 de abril de 2026,"Se ha intentado vulnerar la web de JSBach para hacer ejecución remota de comandos para simular un ataque, la detección del mismo y las alertas a través de Telegram. Se ha intentado muchas veces de formas diferentes sin éxito.",Si
+Bastionado iptables CC,"Realizado ",Jose Luis Oliver Herranz,15 de abril de 2026,"Con ayuda de Alfonso, se han implementado reglas de iptables en la cadena OUTPUT para evitar comunicaciones no autorizadas con equipos que no formen parte de la Vlan 1. También se han añadido medidas de seguridad a apache como la ofuscación de información sensible como versiones del software, listado de directorios, etc.",
+PPS Crear Vlans,Corregir el código de crear vlans para que sea seguro,"Carlos Delgado ",15 de abril de 2026,Validar el campo del nombre de las vlans para que no se pueda inyectar código,
+Montaje nueva red,"Montaje nueva red ",kike,14 de abril de 2026,"Montamos nueva red y formateamos equipo, para hacer una instalación limpia que nos solicito Joan, instalacion ubuntu y el JSBach.","Hardware nos dio problemas, estaba mal puesta la RAM(luz roja), Tuvimos que poner mas tarjetas de red al nuevo equipo.
+Fallo de red durante 1hora por lo que no podiamos descargar paquetes para la correcta instalación."
+Montaje Nueva red,realizada,Pau Roig Varea,14 de abril de 2026,Montaje red proyecto Joan,Ram mal puesta
+PPS crear vlans,realizada,Pau Roig Varea,15 de abril de 2026,Corregir el código para que no ejecute codigo,Ninguno
+Creación boot de Telegram,Creacion boot de Telegram,kike,15 de abril de 2026,"Creamos un bot de Telegram, para que nos llegen alertas de las modificaciones de alguno del los estados de los servicios. Creación del script correspondiente y puesta en marcha. Pruebas del correcto funcionamiento de los avisos de telegram:
+1º Probamos activando y desactivando manualmente y si funciona correctamente.
+2º Lugar automatizamos con el script.
+
+",
+Explicación Joan y Nuevas alertas en Telegram,"Añadir alertas de tipo acces y error ",kike,17 de abril de 2026,"Modificación script , para que detecte acceso y errores de acceso",Problema a la hora del correcto funcionamiento del boot.
+Explicación teórica Joan,"Explicación como configurar Apache para que sea mas seguro:
+Solo se pueda trabajar desde la VLAN 1, fichero de configuración, como modificar el virtualhost……,  modulo de seguridad, reglas modsecurity.conf….
+
+",kike,16 de abril de 2026,,
+Bastionado Apache CC,Realizada,Jose Luis Oliver Herranz,17 de abril de 2026,Se ha bastionado el servidor apache del JSBach para limitar el acceso con Portal captivo a unas VLANs concretas. Esto se ha hecho añadiendo un site en sites-available,
+Puesta en marcha de pfSense en CC,Realizada,Jose Luis Oliver Herranz,17 de abril de 2026,"Con ayuda de Alfonso, se ha reestablecido la conexión con el pfSense después de haber bastionado el servidor Apache y se ha comprobado que todos los equipos de este lado están funcionando y con conexión a internet.",
+Montaje Red,Cambio del montaje de red para adaptarlo a lo de Joan,"Carlos Delgado ",14 de abril de 2026,"Añadir nuevo equipo a la red, quitar pfSense y modificar vlans",Problemas con la red de clase porque dejo de funcionar
+Plano definitivo de red,Plano físico.,kike,,"Hemos plasmado la distribución física y lógica de la red en varios planos a papel, para poder llevar un seguimiento del funcionamiento de la red con un solo vistazo. Hemos detallado el plano lo máximo posible indicando todas las interfaces e ips correspondientes de todos los dispositivos. Así como las redes que integran nuestro plano.",
+Suceso de fallos wazuh,"Implementación complementos ","Marcos2K15 ",20 de abril de 2026,"Entre yo y jorge hemos implementado los complementos de virus total que si funciona correctamente y suricata que no lo hemos conseguido hacer funcionar, el problema es que al instalar suricata había un montón de eventos redundantes y al eliminarlos el wazuh le otros eventos como por ejemplo un nmap, pendiente de solucionar pero hemos avanzado",
+Esquema de red,Realizada,Jose Luis Oliver Herranz,20 de abril de 2026,"Con ayuda de Kike y Alfonso, hemos hecho 2 planos de red que en principio serán definitivos para ayudar al resto del grupo a la hora de entender el funcionamiento de la red de un solo vistazo.
+El primer plano consta de la infraestructura lógica: Vlans, IPs, subinterfaces, etc.
+El segundo plano es la implementación de la infraestructura lógica en la infraestructura física, distribuyendo cómo están cableados los equipos, en qué puertos están conectados y qué se espera de ellos.",
+Bastionado CC,Realizado,Jose Luis Oliver Herranz,20 de abril de 2026,"Con ayuda de Alfonso, hemos terminado de bastionar el lado de la red correspondiente al CC. Hemos implementado configuración HTTPS para el servidor apache2 y hemos restringido el acceso a todos los equipos que no provengan de la VLAN 1.
+También hemos eliminado el acceso por telnet a los switches y migrado de HTTP a HTTPS en los mismos.",
+Puesta en marcha de pfSense en Ayto,Realizada,Jose Luis Oliver Herranz,21 de abril de 2026,Se ha puesto en marcha el otro lado de la red correspondiente al ayuntamiento. Queda pendiente configurar la DMZ con wordpress.,
+Reorganización infraestructura,Realizada,Jose Luis Oliver Herranz,21 de abril de 2026,"Se han reorganizado la ubicación de los equipos para que se adapten a las circunstancias originales, en la que habían dos equipos con pfSense, uno con wordpress y otro con suricata y wazuh actuando como SOC.",
+Creación GPO’s,Creacion GPO’s,kike,21 de abril de 2026," Se aplican algunas de las  GPO’s recomendadas de la documentación de bastionado.",
+Gestión credenciales nuevas,Añadir las credenciales y repartirlas,"Carlos Delgado ",22 de abril de 2026,Las credenciales nuevas de los correos añadirlas al Notion y a la BD,
+OSINT,Realizar OSINT,"Carlos Delgado ",23 de abril de 2026,Realizar el OSINT individual y preparar todo para continuar con el OSINT de los ayuntamientos,
+Ultimos Ajustes y Securización,Realizado,Alfon Gp,17 de abril de 2026,Durante esta semana hemos estado terminando de configurar la red y comenzamos a securizar la web añadiendo seguridad en el servidor de apache,
+Seguridad en el servidor Apache,Realizado,Alfon Gp,20 de abril de 2026,"Hemos añadido un login al servidor apache mediante Basic Auth y hemos cambiado las paginas de configuración del JSBach, PFsense y los switches para que en vez de funcionar en HTTP, funcionen con HTTPS ",
+Tecnicas OSINT,Realizado,Alfon Gp,23 de abril de 2026,Hemos hecho tecnicas de OSINT para descubrir información acerca de nuestros compañeros de clase para posteriormente hacerlo con los funcionarios del ayuntamiento rival,
+Bot Telegram,Añadir las alertas sobre modificación de estados de los servicios,"Carlos Delgado ",20 de abril de 2026,Añadir las alertas sobre la modificación de estados de los servicios en los JSBach,
+Scritps forense,Crear scripts para el análisis forense automático,"Carlos Delgado ",24 de abril de 2026,Crear scripts para el análisis forense automático,Problemas con la red de Internet
+Instalación Kali,Instalación Kali Offline version,"Carlos Delgado ",27 de abril de 2026,Versión Kali con instalación offline para que todos los paquetes ya vengan instalados sin necesidad de conexión a Internet,
+digitalizar invetario,realizada,Pau Roig Varea,27 de abril de 2026,pasar el inventario a online,no
+etiquetación switches,realizada,Pau Roig Varea,27 de abril de 2026,etiquetas switches,no
+Progreso logs jsbach,No completado,"Marcos2K15 ",27 de abril de 2026,"He intentado avanzar con la tarea de que los logs del jsbach de la cc, llegen al soc, el primer paso era comprobar que el soc pueda ver qué está conectada el jsbach en la web del wazuh, el problema es que se ha desconfigurado la VPN del pfsense y por tanto no puede llega hemos intentado reiniandolos pero nada",
+OSINT,Realización OSINT,kike,23 de abril de 2026,"La practica consistia en hacer OSINT, contrastando datos cruzados de los correos corporativos enviados al personal del Ayto, (pero como los correos no funcionarón según lo esperado) el OSINT lo realizamos sobre compañeros del Ayto vecino. Encontramos datos muy relevantes en las redes sociales como son: Nombre y apellidos concreto, fechas de nacimiento, número de teléfono, obtencion del DNI ya que conselleria cifraba unos digitos en las listas de acceso provisionales y GVA otros , utilizacion de herramientas como sherlock…..en definitiva, se obtuvo bastante infotmacion.",
+Scripts Forense,Realizar 3 scripts para el SOC,kike,24 de abril de 2026,"Realización de scripts para automatizar el análisis  forense mediante estos:
+1º)Analizar lo sucedido
+2º)Adquisición de memoria
+3º)Generar un reporte automaticamente
+
+Posteriormente cuando recibamos una atque a nuestro Ayto, debemos realizar cada miembro del Ayto nuestro propio informe de análisis forense para contrastar datos .",
+Resturacion Jsbach-ayun,Completada,"Marcos2K15 ",28 de abril de 2026,He restaurado el jsbach del ayuntamiento user:JSBachAYTO password:123456lol y he descargado la ultima versión de aules de jsbach,
+Logs Switches en SOC,Añadir Switch trabajadores en el SOC,"Carlos Delgado ",27 de abril de 2026,Configurar remote logs en switch y modificar configuración de Wazuh para las alertas,Varios…
+Integracion VirusTotal,Realizada,Jorge Cortés Hernández,20 de abril de 2026,Iniciar sesion en virus total y guardar la API key para la integracion en wazuh. añadir al fichero ossec.conf para integrar y descargar un fichero con hash conocido para saltar la aleta en wazuh y comprobar funcionamiento,"Fallo de red, cambio de configuracion de red, configuracion erronea de los ficheros, desconexion con la api de wazuh"
+Restablecimiento Red tras tormenta eléctrica,Restablecimiento de red en los Switchs y Routers JSBach,kike,28 de abril de 2026,"Gracias a la copia de seguridad de la configuración de los distintos switches y de los backups de los routers, tras la tormenta sufrida la noche anterior fue “relativamente rápida” la restauracion de la red.
+El orden en que realizamos dicha restauración fue el siguiente:
+1)Nos conectamos al switch, una vez accedido a la interfaz de configuración de este system→systemtools→RestoreConfig→browser(buscamos donde tenemos la copia)→export, cargara el fichero y añadimos reinicio automatico.
+2) Cambiamos IP para poder comprobar que el switch se ha configurado según lo esperado.
+3)Realizamos misma operación en los otros 2 switches.
+4)Instalamos en los dos routers afectados por los rayos la versión de ubuntu 24.04 desktop.(Gracias a la copia de seguridad de dicho S.O)
+5)Procedemos a la instalación y restauración de nuestros Routers, el orden fue el siguiente:
+Copiamos la carpeta de JSBAch a la la ruta correspondiente (/usr/local/JSBach) .
+Accedemos a la carpeta de install y una vez en está lanzamos el sript de instalación.
+Realizada la instalación, accedemos a nuestro router y comprobamos que la instalación se habia realizado correctamente.
+En último lugar, comprobamos el correcto funcionamiento de la red conectandose un equipo a la biblioteca y otro al Ayuntamiento  y efectivamente tenian acceso a internet, con lo que verificamos que el incidente habia sido subsanado.
+","Lecciones aprendidas:
+No tener sólo una copia de seguridad, que cada responsable tenga una copia e incluso una tercera copia en otro dispositivo guardada en el Ayto."
+Integracion Suricata,Realizada,Jorge Cortés Hernández,21 de abril de 2026,"Con ayuda de Marcos, conseguimos integrar suricata en wazuh siguiendo la guia de la pagina oficial. añadimos reglas de deteccion simples para escaneos de red y curl con cabeceras maliciosas","Hemos de afinar el reconocimiento de las reglas, son simples y no abarcan muchos tipos de ataques"
+Añadir endpoints como Agentes de Wazuh,Realizada,Jorge Cortés Hernández,24 de abril de 2026,Añadi los equipos que tenian conexion con el manager al dashboard de wazuh de manera que ya pueden ser monitorizados,La estructura de la red y la dependencia de las vpns para conectarse Ayuntamiento <> Casa cultura hace que el acceso de esa vlan a algunos endpoints sea imposible
+Corrección de Errores VPN,Realizada,Jorge Cortés Hernández,23 de abril de 2026,"Ayude a Jose Luis a detectar los fallos que tenia la vpn. Faltaba añadir las rutas que supuestamente se añadian por defecto al configurarla. ","Duracion del diagnostico "
+Adicion de Endpoints al wazuh II,Realizada,Jorge Cortés Hernández,13 de abril de 2026,"Añadi los endpints al wazuh tras el cambio de red, tuvimos que cambiar la ip al servidor, lo cual cambio la configuracion del manager",duracion
+Bot para aviso de Alertas de cambios de servicio,Realizada,Jorge Cortés Hernández,15 de abril de 2026,"Entre Kike y yo conseguimos un bot funcional que avisaba de los cambios de los servicios en el JSBach, bot que mas tarde fue desechado","No sirvio para nada "
+OSINT,Realizada,Jorge Cortés Hernández,21 de abril de 2026,Hice una investigacion exitosa de Enrique de Benimerda,El FW de generalitat
+Inicio de sesion Credenciales Guarroman,Realizad,Jorge Cortés Hernández,23 de abril de 2026,Inicie sesion con mis credenciales correspondientes a mi cargo,
+Scripts de Forense,"Realizada ",Jorge Cortés Hernández,24 de abril de 2026,"Hice scripts en python que creaban el directorio de los casos, un archivo con los datos del sistema en ese momento y un dump de la memoria para luego poder ser analizada por Volatility3",
+Preparacion para DR,Realizada,Jorge Cortés Hernández,27 de abril de 2026,Entre Kike y yo hicimos copias de seguridad a todos los dispositivos de red (Switches y JSBachs) para la tormenta del dia posterior,
+Adicion de Endpoints al wazuh III,Realizada,Jorge Cortés Hernández,15 de abril de 2026,"Añadi los endpoints al wazuh ",Cambio de la estructura de la red
+Logs remotos SWITCH > SOC,Realizada,Jorge Cortés Hernández,27 de abril de 2026,"Ayude a solucionar el problema. El switch enviaba informacion pero no sabiamos donde. ",
+"GPOS ",Realizadas,Jorge Cortés Hernández,20 de abril de 2026,"Junto a Kike y a Luis, decidimos y aplicamos las GPOs correspondientes al fichero de Bastionado proporcionado por Jose Picon",
+Restablecimiento de Red tras tormenta eléctrica,Realizado,Jorge Cortés Hernández,28 de abril de 2026,"Gracias a la copia de seguridad de la configuración de los distintos switches y de los backups de los routers, tras la tormenta sufrida la noche anterior fue “relativamente rápida” la restauracion de la red.
+El orden en que realizamos dicha restauración fue el siguiente:
+1)Nos conectamos al switch, una vez accedido a la interfaz de configuración de este system→systemtools→RestoreConfig→browser(buscamos donde tenemos la copia)→export, cargara el fichero y añadimos reinicio automatico.
+2) Cambiamos IP para poder comprobar que el switch se ha configurado según lo esperado.
+3)Realizamos misma operación en los otros 2 switches.
+4)Instalamos en los dos routers afectados por los rayos la versión de ubuntu 24.04 desktop.(Gracias a la copia de seguridad de dicho S.O)
+5)Procedemos a la instalación y restauración de nuestros Routers, el orden fue el siguiente:
+Copiamos la carpeta de JSBAch a la la ruta correspondiente (/usr/local/JSBach) .
+Accedemos a la carpeta de install y una vez en está lanzamos el sript de instalación.
+Realizada la instalación, accedemos a nuestro router y comprobamos que la instalación se habia realizado correctamente.
+En último lugar, comprobamos el correcto funcionamiento de la red conectandose un equipo a la biblioteca y otro al Ayuntamiento  y efectivamente tenian acceso a internet, con lo que verificamos que el incidente habia sido subsanado.
+",
+Preparación para DR,Copia de Seguridad Routers y Switches.,kike,27 de abril de 2026,"Realización de copias de seguridad de los dispositivos de red, búsqueda de información de como realizar la copia del archivo de configuración del tp-link. (system→systemtools→backupconfig), y realizamos copia de seguridad de nuestros routers.(JSBach). 
+Comprobamos que se ha realizado la copia de los switch  correctamentede. Para ello modificamos la configuración de uno de los switch y luego  restauramos, comprobando que el switch vuelve a su estado original antes de la modificación",
+Intalacion odoo,no realizada,Pau Roig Varea,29 de abril de 2026,intentamos instalar odoo con algunos problemas,Problemas con la bbdd de odoo
+Cargar modulo Odoo,Odoo,kike,30 de abril de 2026,"Intentamos cargar el módulo “Todos los empleados”, pero no se cargaba correctamente. La configuración de Odoo nos estaba dando problemas, por lo que decidimos realizar una instalación limpia. Sin embargo, surgieron errores durante la instalación de la base de datos PostgreSQL. Intentamos solucionarlo finalizando los procesos en ejecución y reinstalando PostgreSQL, pero el conflicto de rutas persistía.",
+Instalar Odoo y modulo empleados,Realizada,"Carlos Delgado ",30 de abril de 2026,"Instalar Odoo 15, cargar modulo de empleados y añadir cuentas de empleados",
+OSINT Baltasar,Realizada,"Carlos Delgado ",30 de abril de 2026,Informe con todos los datos extraídos de los correos más toda la información publica,
+OSINT Dolores Exposito,"Realización OSINT  ",kike,30 de abril de 2026,,
+Bastionado con doble Factor de Autentificación,Como Bastionar con un USB como doble factor de autentificación con el número de identificador del proveedor y de serie de dicho dispositivo(este en único).Modificacion PAM (Privileged Access Management o Gestión de Accesos Privilegiados) en /etc/pam.d/gdm-password añadimos en la ultima linea session optional pam_exec.soc “ruta donde tenemos el script”,kike,4 de mayo de 2026,,
+Bastionado doble factor en jsbach,Completado,"Marcos2K15 ",4 de mayo de 2026,"Entre jorge, Kike y yo hemos hecho que nuestro jsbach de la casa de la cultura tenga autentificación por usb para poder acceder, si se retira no se podrá iniciar sesión ",
+Cifrado mediante gocryptfs,"Explicación de otra forma de bastionar mediante encriptación.Instalacion gocryptfs, crear copia carpeta queremos encriptar, solo la podre ver el usuario administrador, los demás usuarios la verán encriptada. gocryptfs -f init ./conf-crypt, todo lo que ponga en esta carpeta se encriptará",kike,4 de mayo de 2026,,
+Sistemas de logs en JSBACH,Realizado,Alfon Gp,28 de abril de 2026,He estado buscando una manera de aplicar un sistema de logging en el JSBACH para luego poder centralizarlo en el SOC y monitorizar las acciones del JSBACH,
+Mejorando la pagina web de el ayuntamiento,Realizado,Alfon Gp,27 de abril de 2026,"Junto a la ayuda de Pau he estado personalizando, mejorando y securizando la pagina web de wordpress en nuestra DMZ",
+Implementación de sistema de logs,25%,Alfon Gp,29 de abril de 2026,"Comence a implementar el nuevo sistema de logs en el JSBACH, aunque en un dia no pude terminarlo por completo ya que hay que ir añadiendo las alertas manualmente en cada script",
+Continuamos con la implementación de logging,50%,Alfon Gp,30 de abril de 2026,"Hoy también he continuado aplicando las alertas en los scripts, cuando volvamos del puente espero poder acabarlo.",
+Fin de Ia implementación en el JSBach-Ayto,Realizado,Alfon Gp,4 de mayo de 2026,Junto a la ayuda de Joselu he podido acabar de poner todas las reglas en el sistema y tambien hemos podido hacer comprobaciónes para verificar su correcto funcionamiento,
+Puesta en funcionamiento VPN,"Configuración VPN ",kike,5 de mayo de 2026,"Se configuró una conexión VPN entre el router del ayuntamiento (JSBach) y el router de la Casa de la Cultura(JSBach), estableciendo un túnel seguro para la comunicación entre ambas redes.
+
+Para ello, en el router de la Casa de la Cultura se importaron los ficheros de configuración de la VPN previamente generados en el router principal (JSBach del ayuntamiento). Estos ficheros contienen los parámetros necesarios para la autenticación y el establecimiento del túnel, permitiendo la interconexión segura entre ambas sedes.",
+"configuracion de vpn jsbach casa cultura ",completado,"Marcos2K15 ",5 de mayo de 2026,"Entre yo y Kike hemos configurado el jsbach de la casa de la cultura para que la vpn pueda funcionar correctamente, hemos modificado el wan, configurado el jsbach como secundario en el apartado de vpn y por ultimo hemos puesto la ruta del archivo de configuracion que nos ha pasado joselu con un usb",
+configuracion dmz ccultura,completado,"Marcos2K15 ",5 de mayo de 2026,"con ayuda de joselu hemos configurado la dmz ya que no tenia conexion con el jsbach de ccultura, al principio no recibian paquetes entre si, probamos a cambiar los cables de red y aun asi nada, el problema era que las tarjetas de red estaban invertidas",
+Crackeo de contraseñas de Benimerda,Realizada,Jorge Cortés Hernández,5 de mayo de 2026,Sacamos contraseña de funcionario2 de benimerda a base de fuerza bruta con diccionario,
+Crackeo de contraseñas de Benimerda,Realizada,Jorge Cortés Hernández,6 de mayo de 2026,"Sacamos contraseña de funcionario5 filtrada por el funcionario ",
+Informe Respuesta a Incidentes,Realizada,Jorge Cortés Hernández,6 de mayo de 2026,Supervision del informe de Incidentes relacionado con la tormenta realizado por Kike,
+Prueba de concepto,Realizada,Jorge Cortés Hernández,4 de mayo de 2026,"Junto a Kike, explicacion de securizacion con USB y puesta a prueba con el JSBach, prueba completada exitosamente",
+Osint,Seguimos haciendo OSINT de la bliliotecaría del Ayuntamiento de benimerda,kike,5 de mayo de 2026,Documentamos el proceso de las herramientas y resultados que vamos obteniendo.,
+Informe Incidentes,Realizado,kike,6 de mayo de 2026,"Rellenamos el informe del incidente ocurrido por tormenta eléctrica. ",
+Osint,Realizada,kike,6 de mayo de 2026,Continuamos con la fase OSINT y obtenemos credenciales de acceso al correo de la bibliotecaria.,
+Adicion de reglas al Wazuh,Realizada,Jorge Cortés Hernández,7 de mayo de 2026,"Añadir reglas de deteccion de reverse shell, curls maliciosos e intentos de exfiltracion de informacion",
+Corrección de reglas,Completado,"Marcos2K15 ",12 de mayo de 2026,"Primero que nada he hecho una copia de seguridad de las actuales normas del wazuh, luego he visto que tenían varios problemas estructurales que provocaban fallos conjuntos en las reglas, tras actualizar las normas todas las reglas fueron compiladas correctamente, suricata cargo el fichero sin errores,se ha alcanzado un estado operativo estable y se ha reducido el ruido, al final se probó y daban errores, más tarde probamos los de la copia de seguridad de jorge y también daban errores, lo solucionamos poniéndole en el chat con el que estaba hablando para solucionar las reglas de jorge y le dijimos que nos diera una versión definitiva usando las reglas de jorge como base, una aplicadas ya funcionaban a la perfección y detectaban los nmap",
+Pequeña reorganización equipos,Realizada,Jose Luis Oliver Herranz,13 de mayo de 2026,"He movido un par de equipos como el Odoo, el switch de administración (vlans 3 y 4) y el SOC de sitio para que sigan una lógica más coherente y sean más accesibles para el equipo.
+Estos cambios son los siguientes:
+  • Odoo ahora forma parte de la VLAN 3 junto con el AD
+  • El switch de administración ahora contempla el puerto 2 como parte de la VLAN 3
+  • Se ha movido el switch de clientes (vlans 5 y 6) a la mesa compuesta de clientes
+  • El SOC ahora se encuentra en la mesa de los clientes en vez de en el suelo, lo cuál ayudará a no dejarnos el cuello cada vez que trabajemos con el equipo.",
+Rsyslog JSBach,Pendiente,Jose Luis Oliver Herranz,,,
+Osint a concejal benimerda,realizada,Pau Roig Varea,4 de mayo de 2026,obtener contraseña de la concejal de benimerda,no
+plano fisico,realizada,Pau Roig Varea,12 de mayo de 2026,plano fisico nuevo tras modificaciones,no
+Problemas ad,"Completado ","Marcos2K15 ",13 de mayo de 2026,"El ad tiene creado las unidades organizativas de dirección y funcionarios, los usuarios que se van a usar son, funcionario1,2 y3, el 1 está en direccion y tiene todos los permisos, el 2 y 3 solo se inician en dos equipos correspondientes que se le han asignado a cada uno, además joselu tenía un problema al iniciar con por ejemplo funcionario 1 en el winoodo, la solución era que el user ""funcionario1guarroman"" era demasiado largo y se tenía que iniciar sesión con ""funcionario1guarroman”",
+Problemas admin wazuh,No completado,"Marcos2K15 ",14 de mayo de 2026,"Hemos investigado joselu y yo como poder eliminar el user de admin del wazuh ya que tiene una contraseña muy sencilla y puede ser una vulnerabilidad, no hemos podido cambiar la contraseña ni eliminar el user, ya que la web de administración nos daba un error y tampoco ha funcionado borrar el user directamente de los archivos de configuración de wazuh, al final lo hemos dejado co me o está.",
+Avances en el sistema forense,Progreso,Alfon Gp,12 de mayo de 2026,Hoy he implementado en el programa la posibilidad de usar volatility y en caso de que el plugin diera error pueda ejecutar un comando en local para descubrir esa información,
+Instalación automatica del sistema forense,Realizado,Alfon Gp,13 de mayo de 2026,Hoy he estado actualizando el programa para que se pueda instalar todo lo necesario con un mismo script,
+Implementación de servicio arranque del dashboard y de reporte automatico en el arranque del sistema forense,Realizado,Alfon Gp,14 de mayo de 2026,Hoy he estado implementando en el sistema de reporte forense dos servicios para que en el arranque se inicie automaticamente el programa y para que genere un reporte general con todos los plugins disponibles,
+Implementando sistema de trasferencia remota automatica de reportes,En progreso,Alfon Gp,15 de mayo de 2026,He estado investigando para que los reportes que se generen en los equipos se envien de forma automatica al SOC con formato reporte+equipo+FechayHora,
+Prueba de fuerza bruta contra la cuenta de funcionario9guarroman,Realizado sin exito,Alfon Gp,6 de mayo de 2026,"Hoy he estado probando contraseñas para intentar descubrir la contraseña del funcionario9, estuve trabajando con el programa Hydra y una biblioteca con 7000 contraseñas para ver si lo podía sacar pero no nos servía para la cuenta que intentábamos vulnerar.",Captcha de Google y Limitaciones de Hydra para las cuentas de Gmail
+Integracion Sysmon,Realizada,Jorge Cortés Hernández,15 de mayo de 2026,Intregracion de SYSMON en los logs de wazuh,
+Solucion problemas Wazuh,Realizada,Jorge Cortés Hernández,13 de mayo de 2026,Se cambiaron las reglas de deteccion de Suricata interrumpiendo el funcionamiento. Comprobe y arregle la sintaxis,
+Red Team,Realizado,Jorge Cortés Hernández,12 de mayo de 2026,Debate junto a Carlos sobre los posibles vectores de entrada de Benimerda,
+Informe ataque red team,,kike,12 de mayo de 2026,"Durante toda la semana intento de vulnerar el Ayuntamiento de Benimerda. ",
+ataque guarroman/benimerda,realizada,Pau Roig Varea,18 de mayo de 2026,ataque a el ayuntamiento de benimerda y guarroman con Carlos Jolu y Luis,dmz de benimerda mal configurada
+Informe Blue Team,En proceso,Jorge Cortés Hernández,19 de mayo de 2026,Entre Kike y yo realizamos las capturas necesarias para el informe de Blue Team,
+Wazuh correción de reglas,Realizada,Jorge Cortés Hernández,19 de mayo de 2026,Corregi el metodo de detección de las reglas de wazuh para evitar tantos falsos positivos,
+Analisis forense del Ataque realizado por nuestro Red Team,En proceso,Jorge Cortés Hernández,20 de mayo de 2026,"Copia de los archivos de logs de la DMZ para posterior analisis ",

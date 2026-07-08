@@ -1,0 +1,3 @@
+# TAREAS PENDIENTES
+
+[Tablero de tareas](TAREAS%20PENDIENTES/Tablero%20de%20tareas%20cd1ae32e15d74dc7b890308a8c4764e4.csv)
