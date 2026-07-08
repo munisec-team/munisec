@@ -1,0 +1,39 @@
+ #!/bin/bash
+ 
+ source /usr/local/JSBach/conf/variables.conf
+ 
+######################################################################
+###  Funcions
+######################################################################
+ 
+
+fnc_inicia_configuracio()
+{
+	echo "fnc_inicia_configuracio"	
+	for i in $(cat $DIR/$DIR_PROJECTE/$DIR_CONF/serveis.conf)
+	do
+		servei=$(echo $i | cut -d ";" -f 1)
+		estat=$(echo $i | cut -d ";" -f 2)
+		echo $servei $estat
+		if [ $estat = "ACTIVAT" ]; then
+			echo "/bin/bash $DIR/$DIR_PROJECTE/$DIR_SCRIPTS/$servei iniciar"
+			/bin/bash $DIR/$DIR_PROJECTE/$DIR_SCRIPTS/$servei iniciar
+		fi
+	done
+}
+
+fnc_inicia_servidor()
+{
+	echo "fnc_inicia_servidor"
+	/bin/bash $DIR/$DIR_PROJECTE/$DIR_SYSTEM/srv_cli
+}
+
+
+######################################################################
+###  MAIN
+######################################################################
+
+fnc_inicia_configuracio
+fnc_inicia_servidor
+
+

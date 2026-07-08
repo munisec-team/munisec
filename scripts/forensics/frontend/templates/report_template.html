@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forensic Analysis Report</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Syne:wght@400;600;700&display=swap');
+
+        :root {
+            --c-bg: #0d0f14;
+            --c-surface: #131720;
+            --c-panel: #1a1f2e;
+            --c-border: #252c3d;
+            --c-accent-green: #00e5a0;
+            --c-accent-blue: #3d8ef8;
+            --c-accent-amber: #f5a623;
+            --c-accent-red: #e0484a;
+            --c-accent-purple: #a06eff;
+            --c-text-primary: #e8ecf4;
+            --c-text-secondary: #7a8399;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Syne', sans-serif;
+            background: #000;
+            color: var(--c-text-primary);
+            padding: 30px 20px;
+            min-height: 100vh;
+        }
+
+        .report-root {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: var(--c-bg);
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 0 60px rgba(0, 229, 160, 0.08), 0 20px 60px rgba(0,0,0,0.6);
+        }
+
+        /* ── HEADER ── */
+        .report-header {
+            background: var(--c-surface);
+            border-bottom: 1px solid var(--c-border);
+            padding: 28px 36px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+        .header-left { display: flex; align-items: center; gap: 16px; }
+        .header-logo {
+            width: 44px; height: 44px;
+            background: linear-gradient(135deg, var(--c-accent-green), #00b37a);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 18px; font-weight: 700; color: #000;
+        }
+        .header-title { font-size: 20px; font-weight: 700; letter-spacing: 0.02em; }
+        .header-subtitle {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px; color: var(--c-text-secondary); margin-top: 3px;
+        }
+        .header-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px; font-weight: 600;
+            padding: 4px 10px; border-radius: 20px;
+            background: rgba(0,229,160,0.1);
+            border: 1px solid rgba(0,229,160,0.25);
+            color: var(--c-accent-green);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        /* ── METADATA GRID ── */
+        .meta-section { padding: 28px 36px; border-bottom: 1px solid var(--c-border); }
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+        }
+        .meta-card {
+            background: var(--c-panel);
+            border: 1px solid var(--c-border);
+            border-radius: 10px;
+            padding: 14px 16px;
+        }
+        .meta-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9px; color: var(--c-text-secondary);
+            text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px;
+        }
+        .meta-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px; color: var(--c-accent-green);
+            word-break: break-all; line-height: 1.4;
+        }
+        .meta-value.normal { color: var(--c-text-primary); font-size: 13px; font-family: 'Syne', sans-serif; }
+
+        /* ── EXECUTIVE SUMMARY ── */
+        .exec-section { padding: 28px 36px; border-bottom: 1px solid var(--c-border); }
+        .exec-card {
+            border-radius: 10px; padding: 22px 24px;
+            border-left: 4px solid;
+        }
+        .exec-card.high   { border-color: var(--c-accent-red);    background: rgba(224,72,74,0.07); }
+        .exec-card.medium { border-color: var(--c-accent-amber);  background: rgba(245,166,35,0.07); }
+        .exec-card.low    { border-color: var(--c-accent-green);  background: rgba(0,229,160,0.07); }
+
+        .exec-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+        .exec-title { font-size: 15px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+        .severity-pill {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px; font-weight: 600;
+            padding: 4px 12px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.08em;
+        }
+        .severity-pill.high   { background: rgba(224,72,74,0.2);   color: var(--c-accent-red);   border: 1px solid rgba(224,72,74,0.4); }
+        .severity-pill.medium { background: rgba(245,166,35,0.2);  color: var(--c-accent-amber); border: 1px solid rgba(245,166,35,0.4); }
+        .severity-pill.low    { background: rgba(0,229,160,0.2);   color: var(--c-accent-green); border: 1px solid rgba(0,229,160,0.4); }
+
+        .threats-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px; color: var(--c-text-secondary);
+            text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px;
+        }
+        .threat-list { list-style: none; }
+        .threat-list li {
+            display: flex; align-items: flex-start; gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            font-size: 13px; line-height: 1.5;
+        }
+        .threat-list li:last-child { border-bottom: none; }
+        .threat-list li::before { content: '⚠'; color: var(--c-accent-amber); flex-shrink: 0; margin-top: 1px; }
+        .no-threats { color: var(--c-accent-green); font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+
+        /* ── FINDINGS ── */
+        .findings-section { padding: 28px 36px; }
+        .section-heading {
+            display: flex; align-items: center; gap: 10px;
+            margin-bottom: 24px;
+            font-size: 13px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.1em;
+            color: var(--c-text-secondary);
+        }
+        .section-heading::after {
+            content: ''; flex: 1; height: 1px; background: var(--c-border);
+        }
+
+        .plugin-block { margin-bottom: 36px; }
+        .plugin-header {
+            display: flex; align-items: center; gap: 12px;
+            margin-bottom: 14px;
+        }
+        .plugin-icon {
+            width: 28px; height: 28px; border-radius: 6px;
+            background: rgba(61,142,248,0.15);
+            border: 1px solid rgba(61,142,248,0.3);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px;
+        }
+        .plugin-name {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px; font-weight: 600; color: var(--c-accent-blue);
+        }
+        .plugin-count {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px; padding: 2px 8px; border-radius: 10px;
+            background: rgba(61,142,248,0.1); color: var(--c-accent-blue);
+            border: 1px solid rgba(61,142,248,0.2);
+        }
+
+        /* ── TABLES ── */
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid var(--c-border);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+        }
+        thead tr { background: rgba(61,142,248,0.1); }
+        th {
+            padding: 10px 14px;
+            text-align: left;
+            color: var(--c-accent-blue);
+            font-weight: 600;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            border-bottom: 1px solid var(--c-border);
+            white-space: nowrap;
+        }
+        td {
+            padding: 9px 14px;
+            border-bottom: 1px solid rgba(37,44,61,0.6);
+            color: var(--c-text-primary);
+            vertical-align: top;
+            line-height: 1.4;
+        }
+        tr:last-child td { border-bottom: none; }
+        tbody tr:hover { background: rgba(255,255,255,0.02); }
+        tbody tr:nth-child(even) { background: rgba(255,255,255,0.015); }
+
+        /* key-value table variant */
+        .kv-table thead tr { background: rgba(0,229,160,0.08); }
+        .kv-table th { color: var(--c-accent-green); }
+        .kv-table td:first-child {
+            color: var(--c-text-secondary);
+            font-size: 11px; white-space: nowrap; width: 200px;
+        }
+        .kv-table td:last-child { color: var(--c-text-primary); }
+
+        /* raw/parsed text table */
+        .raw-table thead tr { background: rgba(160,110,255,0.08); }
+        .raw-table th { color: var(--c-accent-purple); }
+
+        /* terminal box */
+        .terminal-box {
+            background: #000;
+            border: 1px solid var(--c-border);
+            border-radius: 8px;
+            padding: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            color: var(--c-accent-green);
+            white-space: pre;
+            overflow-x: auto;
+            box-shadow: inset 0 0 20px rgba(0, 229, 160, 0.05);
+        }
+
+        /* empty / error states */
+        .empty-state {
+            padding: 20px; text-align: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px; color: var(--c-text-secondary);
+            background: var(--c-panel); border-radius: 8px;
+            border: 1px dashed var(--c-border);
+        }
+
+        /* interaction */
+        .plugin-header { cursor: pointer; transition: background 0.2s; border-radius: 8px; padding: 4px 8px; margin-left: -8px; }
+        .plugin-header:hover { background: rgba(255,255,255,0.05); }
+        .collapse-btn {
+            margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: 14px;
+            color: var(--c-text-secondary); transition: transform 0.3s;
+        }
+        .plugin-block.collapsed .collapse-btn { transform: rotate(-90deg); }
+        .plugin-block.collapsed .plugin-content { display: none; }
+
+        th.sortable { cursor: pointer; user-select: none; position: relative; padding-right: 25px; }
+        th.sortable:hover { color: var(--c-text-primary); background: rgba(61,142,248,0.2); }
+        th.sortable::after {
+            content: '↕'; position: absolute; right: 8px; opacity: 0.3; font-size: 10px;
+        }
+        th.sort-asc::after { content: '↑'; opacity: 1; }
+        th.sort-desc::after { content: '↓'; opacity: 1; }
+    </style>
+</head>
+<body>
+<div class="report-root">
+
+    <!-- HEADER -->
+    <div class="report-header">
+        <div class="header-left">
+            <div class="header-logo">▲</div>
+            <div>
+                <div class="header-title">Reporte de Análisis Forense</div>
+                <div class="header-subtitle">Digital Forensics Suite · Memory Analysis Report</div>
+            </div>
+        </div>
+        <div class="header-badge">Confidencial</div>
+    </div>
+
+    <!-- METADATA -->
+    <div class="meta-section">
+        <div class="meta-grid">
+            <div class="meta-card">
+                <div class="meta-label">Archivo de Volcado</div>
+                <div class="meta-value normal">{{ dump_file }}</div>
+            </div>
+            <div class="meta-card">
+                <div class="meta-label">Tamaño</div>
+                <div class="meta-value normal">{{ dump_size }} bytes</div>
+            </div>
+            <div class="meta-card">
+                <div class="meta-label">MD5</div>
+                <div class="meta-value">{{ dump_hashes.md5 if dump_hashes is defined and dump_hashes.md5 is defined else 'N/A' }}</div>
+            </div>
+            <div class="meta-card">
+                <div class="meta-label">SHA256</div>
+                <div class="meta-value">{{ dump_hashes.sha256 if dump_hashes is defined and dump_hashes.sha256 is defined else 'N/A' }}</div>
+            </div>
+            <div class="meta-card">
+                <div class="meta-label">Perfil SO Detectado</div>
+                <div class="meta-value normal">{{ os_profile }}</div>
+            </div>
+            <div class="meta-card">
+                <div class="meta-label">Plugins Ejecutados</div>
+                <div class="meta-value normal">{{ plugins_run | join(', ') }}</div>
+            </div>
+            <div class="meta-card">
+                <div class="meta-label">Generado el</div>
+                <div class="meta-value normal">{{ generation_time }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- EXECUTIVE SUMMARY -->
+    <div class="exec-section">
+        <div class="exec-card {{ severity }}">
+            <div class="exec-top">
+                <div class="exec-title">Executive Summary</div>
+                <span class="severity-pill {{ severity }}">{{ severity }}</span>
+            </div>
+            <div class="threats-label">Amenazas Detectadas</div>
+            {% if alerts %}
+            <ul class="threat-list">
+                {% for alert in alerts %}
+                <li>{{ alert }}</li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <div class="no-threats">✓ No se detectaron amenazas.</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- FINDINGS -->
+    <div class="findings-section">
+        <div class="section-heading">Resultados por Plugin</div>
+
+        {% for plugin, data in findings.items() %}
+        <div class="plugin-block" id="plugin-{{ loop.index }}">
+            <div class="plugin-header" onclick="togglePlugin('plugin-{{ loop.index }}')">
+                <div class="plugin-icon">⚙</div>
+                <div class="plugin-name">{{ plugin }}</div>
+                {% if data is iterable and data is not string and data is not mapping %}
+                    <span class="plugin-count">{{ data | length }} entradas</span>
+                {% elif data is mapping %}
+                    <span class="plugin-count">{{ data | length }} campos</span>
+                {% endif %}
+                <div class="collapse-btn">▼</div>
+            </div>
+
+            <div class="plugin-content">
+            
+            {# ── NEW CASE: Structured Text (Terminal View) ── #}
+            {% if data is mapping and data.type == 'text' %}
+                <div class="terminal-box">{{ data.output }}</div>
+
+            {# ── CASE 1: List of dicts → columnar table ── #}
+            {% elif data is iterable and data is not string and data is not mapping %}
+                {% if data | length > 0 %}
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                {% for header in data[0].keys() %}
+                                <th class="sortable" onclick="sortTable(this, {{ loop.index0 }})">{{ header }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in data %}
+                            <tr>
+                                {% for val in row.values() %}
+                                <td>{{ val }}</td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">No se encontraron resultados para este plugin.</div>
+                {% endif %}
+
+            {# ── CASE 2: Dict → key/value table ── #}
+            {% elif data is mapping %}
+                {% if data | length > 0 %}
+                <div class="table-wrapper">
+                    <table class="kv-table">
+                        <thead>
+                            <tr><th>Propiedad</th><th>Valor</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for key, val in data.items() %}
+                            <tr>
+                                <td>{{ key }}</td>
+                                <td>
+                                    {# If the value is itself a dict, render nested kv #}
+                                    {% if val is mapping %}
+                                        {% for k2, v2 in val.items() %}
+                                            <div><strong style="color:var(--c-text-secondary);font-size:10px;">{{ k2 }}:</strong> {{ v2 }}</div>
+                                        {% endfor %}
+                                    {% elif val is iterable and val is not string %}
+                                        {% for item in val %}
+                                            <div>{{ item }}</div>
+                                        {% endfor %}
+                                    {% else %}
+                                        {{ val }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">Sin datos disponibles.</div>
+                {% endif %}
+
+            {# ── CASE 3: Raw string → parse into table rows ── #}
+            {% elif data is string %}
+                {% set lines = data.split('\n') %}
+                {% set non_empty = [] %}
+                {% for l in lines %}{% if l.strip() %}{% set _ = non_empty.append(l.strip()) %}{% endif %}{% endfor %}
+
+                {% if non_empty | length > 0 %}
+                <div class="table-wrapper">
+                    <table class="raw-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Línea de Salida</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for line in non_empty %}
+                            <tr>
+                                <td style="color:var(--c-text-secondary);width:50px;text-align:right;">{{ loop.index }}</td>
+                                <td style="white-space:pre-wrap;word-break:break-all;">{{ line }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">Sin salida de texto.</div>
+                {% endif %}
+
+            {# ── CASE 4: Anything else ── #}
+            {% else %}
+                <div class="table-wrapper">
+                    <table class="raw-table">
+                        <thead><tr><th class="sortable" onclick="sortTable(this, 0)">Salida</th></tr></thead>
+                        <tbody><tr><td style="white-space:pre-wrap;">{{ data }}</td></tr></tbody>
+                    </table>
+                </div>
+            {% endif %}
+            </div> <!-- end plugin-content -->
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- FOOTER -->
+    <div class="report-footer">
+        Generado automáticamente por Digital Forensics Suite · {{ generation_time }}
+    </div>
+
+</div>
+<script>
+    function togglePlugin(id) {
+        document.getElementById(id).classList.toggle('collapsed');
+    }
+
+    function sortTable(th, colIdx) {
+        const table = th.closest('table');
+        const tbody = table.querySelector('tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        const isAsc = th.classList.contains('sort-asc');
+        
+        // Reset headers
+        table.querySelectorAll('th').forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+        
+        rows.sort((a, b) => {
+            const aVal = a.cells[colIdx].innerText.trim();
+            const bVal = b.cells[colIdx].innerText.trim();
+            
+            // Try numeric sort
+            const aNum = parseFloat(aVal.replace(/,/g, ''));
+            const bNum = parseFloat(bVal.replace(/,/g, ''));
+            
+            if (!isNaN(aNum) && !isNaN(bNum)) {
+                return isAsc ? bNum - aNum : aNum - bNum;
+            }
+            
+            // Default string sort
+            return isAsc 
+                ? bVal.localeCompare(aVal, undefined, {numeric: true, sensitivity: 'base'})
+                : aVal.localeCompare(bVal, undefined, {numeric: true, sensitivity: 'base'});
+        });
+        
+        th.classList.add(isAsc ? 'sort-desc' : 'sort-asc');
+        rows.forEach(row => tbody.appendChild(row));
+    }
+</script>
+</body></html>

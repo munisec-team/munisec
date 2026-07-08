@@ -1,0 +1,317 @@
+#!/bin/bash
+
+source /usr/local/JSBach/conf/variables.conf
+source $DIR/$DIR_PROJECTE/$DIR_SCRIPTS/$FUNCIONS
+source /usr/local/bin/jsbach-logger.sh
+
+######################################################################
+###  Funcions
+######################################################################
+
+# saber si la targeta suporta mode AP
+# iw list | grep -A 10 "Supported interface modes" | grep "* AP"
+# busqueda millor canal
+# iw dev wlp1s0 scan | grep DS
+# verue el xipset
+# lspci -nnk | grep -A3 -i network
+
+fnc_iniciar() {
+    if ! fnc_int_wifi; then
+        echo "No hi ha targeta inal·lambrica"
+	log_action "WIFI" "INICIAR" "SE HA INTENTADO INICIAR EL MÓDULO SIN UNA IFACE WIFI DISPONIBLE" "WARNING"
+        exit 0
+    fi
+
+    if [[ "$(fnc_estat)" =~ ^$ACTIVAT* ]]; then
+        echo "Wifi ja esta iniciat"
+	log_action "WIFI" "INICIAR" "SE HA INTENTADO INICIAR EL MÓDULO CUANDO YA ESTABA INICIADO" "WARNING"
+        return 1
+    fi
+
+    source "$DIR/$DIR_PROJECTE/$DIR_CONF/$WIFI_HOSTAPD_CONF"
+    source "$DIR/$DIR_PROJECTE/$DIR_CONF/$WIFI_DHCP_CONF"
+    if ! fnc_int_wifi_suporta_ap $interface; then
+        echo "La interfície $interface no suporta mode AP"
+	log_action "WIFI" "INICIAR" "SE HA INTENTADO INICIAR EL MÓDULO CUANDO LA IFACE WIFI NO SOPORTA HOSTAPD"
+        return 1
+    fi
+    pkill hostapd
+
+    if lspci -nnk | grep -A3 -i network | grep rtl8192ce; then
+        ip link set $interface down
+        modprobe -r rtl8192ce
+        modprobe -r rtl8192c_common
+        modprobe -r rtlwifi
+        modprobe rtl8192ce
+        iw dev $interface set type __ap
+        ip l s dev $interface up
+    fi
+
+    hostapd -B $DIR/$DIR_PROJECTE/$DIR_CONF/$WIFI_HOSTAPD_CONF
+
+    ip l s dev $interface up
+    ip a a $wifi_ip dev $interface
+
+    fnc_estat
+    sed -i 's/^wifi;.*/wifi;ACTIVAT/' $DIR/$DIR_PROJECTE/$DIR_CONF/$SERVEIS
+    log_action "WIFI" "INICIAR" "SE HA INICIADO EL MÓDULO WIFI"
+}
+
+fnc_aturar() {
+
+    if ! fnc_int_wifi; then
+        echo "No hi ha targeta inal·lambrica"
+	log_action "WIFI" "PARAR" "SE HA INTENTADO PARAR EL MÓDULO SIN UNA IFACE WIFI DISPONIBLE" "WARNING"
+        exit 0
+    fi
+
+    if [[ "$(fnc_estat)" =~ ^$DESACTIVAT* ]]; then
+        echo "Wifi ja esta aturat"
+	log_action "WIFI" "PARAR" "SE HA INTENTADO PARAR EL MÓDULO CUANDO YA ESTABA PARADO" "WARNING"
+        return 1
+    fi
+
+    echo "Aturant wifi"
+    pkill hostapd
+    (
+        source "$DIR/$DIR_PROJECTE/$DIR_CONF/$WIFI_HOSTAPD_CONF"
+        source "$DIR/$DIR_PROJECTE/$DIR_CONF/$WIFI_DHCP_CONF"
+        ip l s dev $interface down
+        ip a d $wifi_ip dev $interface
+        echo "parant $interface"
+
+        # Comprovem si hi ha que reiniciar el dhcp
+    )
+    sed -i 's/^wifi;.*/wifi;DESACTIVAT/' $DIR/$DIR_PROJECTE/$DIR_CONF/$SERVEIS
+    log_action "WIFI" "PARAR" "SE HA DETENIDO EL MÓDULO WIFI"
+}
+
+fnc_guardar_wifi_ip() {
+    if [ $# -lt 1 ]; then
+        echo "falten parametres ip"
+	log_action "WIFI" "CONFIG" "SE HA INTENTADO CONFIGURAR EL MÓDULO SIN PARÁMETROS" "WARNING"
+        return 1
+    fi
+
+    ip_wifi=$1
+
+    if ! fnc_validar_ip_host $ip_wifi; then
+        echo "IP host $ip_wifi no valida"
+	log_action "WIFI" "CONFIG" "SE HA INTENTADO CONFIGURAR UNA IP INVÁLIDA" "WARNING"
+        return 1
+    fi
+
+    source "$DIR/$DIR_PROJECTE/$DIR_CONF/$WIFI_DHCP_CONF"
+
+    ip_inicial=$(fnc_primera_ip_de_host $ip_wifi)
+    ip_final=$(fnc_darrera_ip_de_host $ip_wifi)
+
+    {
+        echo "wifi_ip=$ip_wifi"
+        echo "wifi_ip_inicial=$ip_inicial"
+        echo "wifi_ip_final=$ip_final"
+        echo "wifi_gateway=$ip_inicial"
+        echo "wifi_ip_dns1=$ip_inicial"
+        echo "wifi_dhcp_actiu=$wifi_dhcp_actiu"
+    } > "$DIR/$DIR_PROJECTE/$DIR_CONF/$WIFI_DHCP_CONF"
+
+    {
+        echo "#vlan nom;vlan id;ip/masc;ip_PE;"
+        echo "WIFI;4095;$(fnc_ip_xarxa $ip_wifi);$ip_wifi;"
+    } > "$DIR/$DIR_PROJECTE/$DIR_CONF/$WIFI_CONF"
+
+    echo "Guardant wifi ip"
+    log_action "WIFI" "CONFIG" "SE HA GUARDADO LA IP $ip_wifi EN LA CONFIG DEL MÓDULO"
+}
+
+fnc_guardar_wifi_conf() {
+    if [ $# -lt 6 ]; then
+        echo "falten parametres ip, inici, final, gateway, dns1, ACTIVAT|DESACTIVAT"
+	log_action "WIFI" "CONFIG" "SE HA INTENTADO CONFIGURAR EL MÓDULO SIN PARÁMETROS SUFICIENTES" "WARNING"
+        return 1
+    fi
+
+    if ! fnc_validar_ip_host $1; then
+        echo "IP host $1 no valida"
+        return 1
+    fi
+    if ! fnc_validar_ip $2; then
+        echo "IP inicial $2 no valida"
+        return 1
+    fi
+    if ! fnc_validar_ip $3; then
+        echo "IP final $3 no valida"
+        return 1
+    fi
+    if ! fnc_validar_ip $4; then
+        echo "IP gateway $4 no valida"
+        return 1
+    fi
+    if ! fnc_validar_ip $5; then
+        echo "IP dns1 $5 no valida"
+        return 1
+    fi
+    if [[ "$6" != "$ACTIVAT" && "$6" != "$DESACTIVAT" ]]; then
+        echo "DHCP $6 no valida"
+        return 1
+    fi
+
+    {
+        echo "wifi_ip=$1"
+        echo "wifi_ip_inicial=$2"
+        echo "wifi_ip_final=$3"
+        echo "wifi_gateway=$4"
+        echo "wifi_ip_dns1=$5"
+        echo "wifi_dhcp_actiu=$6"
+    } > "$DIR/$DIR_PROJECTE/$DIR_CONF/$WIFI_DHCP_CONF"
+
+    {
+        echo "#vlan nom;vlan id;ip/masc;ip_PE;"
+        echo "WIFI;4095;$(fnc_ip_xarxa $1);$1;"
+    } > "$DIR/$DIR_PROJECTE/$DIR_CONF/$WIFI_CONF"
+
+    echo "Guardant configuració wifi"
+    log_action "WIFI" "CONFIG" "SE HA GUARDADO UNA CONFIG WIFI NUEVA"
+}
+
+fnc_guardar_wifi_hostapd_conf() {
+    echo "ara a guardar hostapd"
+    echo "$@"
+
+    if [ $# -lt 12 ]; then
+        echo "falta parametres interface, driver, ssid, hw_mode, channel, auth_algs, ignore_broadcast_ssid, ap_isolate, wpa, wpa_passphrase, wpa_key_mgmt, rsn_pairwise"
+	log_action "WIFI" "CONFIG" "SE HA INTENTADO GUARDAR UNA CONFIGURACIÓN EN HOSTAPD SIN SUFICIENTES PARÁMETROS"
+        return 1
+    fi
+
+    interface=$1
+    driver=$2
+    ssid=$3
+    hw_mode=$4
+    channel=$5
+    auth_algs=$6
+    ignore_broadcast_ssid=$7
+    ap_isolate=$8
+    wpa=$9
+    wpa_passphrase=${10}
+    wpa_key_mgmt=${11}
+    rsn_pairwise=${12}
+
+    {
+        echo "interface=$interface"
+        echo "driver=$driver"
+        echo "ssid=$ssid"
+        echo "hw_mode=$hw_mode"
+        echo "channel=$channel"
+        echo "auth_algs=$auth_algs"
+        echo "ignore_broadcast_ssid=$ignore_broadcast_ssid"
+        echo "ap_isolate=$ap_isolate"
+        echo "wpa=$wpa"
+        echo "wpa_passphrase=$wpa_passphrase"
+        echo "wpa_key_mgmt=$wpa_key_mgmt"
+        echo "rsn_pairwise=$rsn_pairwise"
+
+    } > "$DIR/$DIR_PROJECTE/$DIR_CONF/$WIFI_HOSTAPD_CONF"
+
+    log_action "WIFI" "CONFIG" "SE HA GUARDADO UNA CONFIG HOSTAPD NUEVA. INTERFACE [$interface], DRIVER[$driver], SSID[$ssid], HW_MODE[$hw_mode], CHANNEL[$channel], AUTH_ALGS[$auth_algs], IGNORE_BROADCAST_SSID[$ignore_broadcast_ssid], AP_ISOLATE[$ap_isolated], WPA[$wpa], WPA_PASSPHRASE[$wpa_passphrase], WPA_KEY_MGMT[$wpa_key_mgmt], RSN_PAIRWISE[$rsn_pairwise]"
+}
+
+fnc_mostrar_wifi_hostapd_conf() {
+    source "$DIR/$DIR_PROJECTE/$DIR_CONF/$WIFI_HOSTAPD_CONF"
+    echo "$interface;$ssid;$hw_mode;$channel;$ipwifi;$masc;$ap_isolate;$wpa_passphrase;$wpa_key_mgmt;"
+    log_action "WIFI" "CONFIG" "SE HA MOSTRADO LA CONFIGURACIÓN DE HOSTAPD"
+}
+
+fnc_mostrar_wifi_conf() {
+    source "$DIR/$DIR_PROJECTE/$DIR_CONF/$WIFI_DHCP_CONF"
+    source "$DIR/$DIR_PROJECTE/$DIR_CONF/$WIFI_HOSTAPD_CONF"
+    echo "$interface;$wifi_ip;$wifi_ip_inicial;$wifi_ip_final;$wifi_gateway;$wifi_ip_dns1;$wifi_dhcp_actiu;"
+    log_action "WIFI" "CONFIG" "SE HA MOSTRADO LA CONFIGURACIÓN WIFI"
+}
+
+fnc_mostrar_wifi_int() {
+    for interface in $(fnc_llista_int_wifi); do
+        if fnc_int_wifi_suporta_ap $interface; then
+            echo "$interface"
+        fi
+    done
+    log_action "WIFI" "CONFIG" "SE HA MOSTRADO LA CONFIGURACIÓN DE LA INTERFAZ WIFI"
+}
+
+fnc_configurar() {
+    local ACCIO=$1
+    shift
+
+    case "$ACCIO" in
+        "guardar_wifi_conf")
+            fnc_guardar_wifi_conf $@
+            ;;
+        "guardar_wifi_ip")
+            fnc_guardar_wifi_ip $@
+            ;;
+        "guardar_wifi_hostapd_conf")
+            fnc_guardar_wifi_hostapd_conf $@
+            ;;
+        "mostrar_wifi_conf")
+            fnc_mostrar_wifi_conf $@
+            ;;
+        "mostrar_wifi_hostapd_conf")
+            fnc_mostrar_wifi_hostapd_conf $@
+            ;;
+        "mostrar_wifi_int")
+            fnc_mostrar_wifi_int $@
+            ;;
+        *)
+            echo "falta [guardar_wifi_conf, guardar_wifi_ip, guardar_wifi_hostapd_conf, mostrar_wifi_conf, mostrar_wifi_hostapd_conf]"
+            ;;
+    esac
+
+}
+
+fnc_estat() {
+    # Comprova si el procés hostapd està en execució
+    if pgrep -x "hostapd" > /dev/null; then
+        echo "$ACTIVAT"
+        echo " "
+        iw dev
+        echo "hostapd està actiu."
+    else
+        echo "$DESACTIVAT"
+        echo "hostapd no està actiu."
+    fi
+    log_action "WIFI" "ESTADO" "SE HA MOSTRADO EL ESTADO DE LA WIFI"
+}
+
+######################################################################
+###  MAIN
+######################################################################
+
+MSG="falta [iniciar, aturar, configurar ,estat]"
+
+# Comprovem que hi hagi almenys un argument (la opció)
+if [ $# -lt 1 ]; then
+    echo "$MSG"
+    exit 1
+fi
+
+OPCIO_1=$1
+shift
+
+# Fem switch per executar la funció que toca
+case "$OPCIO_1" in
+    iniciar)
+        fnc_iniciar $@
+        ;;
+    aturar)
+        fnc_aturar $@
+        ;;
+    configurar)
+        fnc_configurar $@
+        ;;
+    estat)
+        fnc_estat $@
+        ;;
+    *)
+        echo "$MSG"
+        ;;
+esac

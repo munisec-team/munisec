@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forensic Scripts Suite</title>
+    <!-- Incluir CSS existente -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Syne:wght@400;600;700&display=swap');
+
+        :root {
+            --c-bg: #0d0f14;
+            --c-surface: #131720;
+            --c-panel: #1a1f2e;
+            --c-border: #252c3d;
+            --c-accent-green: #00e5a0;
+            --c-accent-blue: #3d8ef8;
+            --c-accent-amber: #f5a623;
+            --c-accent-red: #e0484a;
+            --c-text-primary: #e8ecf4;
+            --c-text-secondary: #7a8399;
+            --c-text-mono: #00e5a0;
+        }
+
+        body {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 20px;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        .db-root {
+            width: 100%;
+            max-width: 1200px;
+            background: var(--c-bg);
+            font-family: 'Syne', sans-serif;
+            color: var(--c-text-primary);
+            min-height: 90vh;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .db-header {
+            background: var(--c-surface);
+            border-bottom: 1px solid var(--c-border);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .db-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .db-logo {
+            width: 32px;
+            height: 32px;
+            background: var(--c-accent-green);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            font-weight: 600;
+            color: #000;
+        }
+
+        .db-title {
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            color: var(--c-text-primary);
+        }
+
+        .db-subtitle {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--c-text-secondary);
+            margin-top: 2px;
+        }
+
+        .db-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--c-accent-green);
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--c-accent-green);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
+        }
+
+        .db-nav {
+            display: flex;
+            background: var(--c-surface);
+            border-bottom: 1px solid var(--c-border);
+            padding: 0 24px;
+            gap: 0;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+
+        .db-nav::-webkit-scrollbar { display: none; }
+
+        .nav-tab {
+            padding: 12px 20px;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--c-text-secondary);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            font-family: 'JetBrains Mono', monospace;
+            white-space: nowrap;
+            user-select: none;
+            border: none;
+            background: none;
+        }
+
+        .nav-tab:hover {
+            color: var(--c-text-primary);
+        }
+
+        .nav-tab.active {
+            color: var(--c-accent-green);
+            border-bottom: 2px solid var(--c-accent-green);
+        }
+
+        .nav-tab span.num {
+            font-size: 10px;
+            background: var(--c-panel);
+            border-radius: 4px;
+            padding: 2px 5px;
+            margin-left: 6px;
+            color: var(--c-text-secondary);
+        }
+
+        .nav-tab.active span.num {
+            background: rgba(0, 229, 160, 0.15);
+            color: var(--c-accent-green);
+        }
+
+        .db-content {
+            padding: 24px;
+        }
+
+        .tab-panel {
+            display: none;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .section-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 4px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .badge-green {
+            background: rgba(0, 229, 160, 0.12);
+            color: var(--c-accent-green);
+            border: 1px solid rgba(0, 229, 160, 0.2);
+        }
+
+        .badge-blue {
+            background: rgba(61, 142, 248, 0.12);
+            color: var(--c-accent-blue);
+            border: 1px solid rgba(61, 142, 248, 0.2);
+        }
+
+        .badge-amber {
+            background: rgba(245, 166, 35, 0.12);
+            color: var(--c-accent-amber);
+            border: 1px solid rgba(245, 166, 35, 0.2);
+        }
+
+        .badge-purple {
+            background: rgba(160, 110, 255, 0.12);
+            color: #a06eff;
+            border: 1px solid rgba(160, 110, 255, 0.2);
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--c-text-primary);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .info-card {
+            background: var(--c-panel);
+            border: 1px solid var(--c-border);
+            border-radius: 10px;
+            padding: 16px;
+        }
+
+        .info-card-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: var(--c-text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 8px;
+        }
+
+        .info-card-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--c-text-primary);
+            line-height: 1.4;
+        }
+
+        .info-card-mono {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--c-accent-green);
+        }
+
+        .overview-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .overview-card {
+            background: var(--c-panel);
+            border: 1px solid var(--c-border);
+            border-radius: 10px;
+            padding: 18px 16px;
+            cursor: pointer;
+            transition: border-color 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .overview-card:hover {
+            border-color: var(--c-accent-green);
+        }
+
+        .overview-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+        }
+
+        .overview-card.card-green::before {
+            background: var(--c-accent-green);
+        }
+
+        .overview-card.card-blue::before {
+            background: var(--c-accent-blue);
+        }
+
+        .overview-card.card-amber::before {
+            background: var(--c-accent-amber);
+        }
+
+        .ov-num {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--c-text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .ov-name {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--c-text-primary);
+            margin-bottom: 6px;
+        }
+
+        .ov-desc {
+            font-size: 12px;
+            color: var(--c-text-secondary);
+            line-height: 1.5;
+        }
+
+        .ov-go {
+            margin-top: 12px;
+            font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--c-accent-green);
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .overview-card:hover .ov-go {
+            opacity: 1;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            background: var(--c-accent-blue);
+            color: #fff;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            font-size: 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.2s opacity;
+        }
+
+        .btn:hover {
+            opacity: 0.8;
+        }
+
+        .btn-green {
+            background: var(--c-accent-green);
+            color: #000;
+        }
+
+        .btn-amber {
+            background: var(--c-accent-amber);
+            color: #000;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .input-file {
+            margin-right: 15px;
+            color: var(--c-text-secondary);
+        }
+
+        .terminal-box {
+            background: #000;
+            color: #0f0;
+            border-radius: 6px;
+            padding: 15px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            height: 150px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            border: 1px solid var(--c-border);
+            margin-top: 20px;
+        }
+
+        /* ── REPORT PREVIEW TABLES ── */
+        .preview-section {
+            margin-top: 24px;
+            border: 1px solid var(--c-border);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .preview-section-header {
+            background: var(--c-panel);
+            border-bottom: 1px solid var(--c-border);
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .preview-section-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--c-accent-amber);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+        .preview-count {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: rgba(245,166,35,0.1);
+            color: var(--c-accent-amber);
+            border: 1px solid rgba(245,166,35,0.2);
+        }
+        .preview-table-wrap { overflow-x: auto; }
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+        }
+        .preview-table thead tr { background: rgba(245,166,35,0.07); }
+        .preview-table th {
+            padding: 8px 12px;
+            text-align: left;
+            color: var(--c-accent-amber);
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            border-bottom: 1px solid var(--c-border);
+            white-space: nowrap;
+            font-weight: 600;
+        }
+        .preview-table td {
+            padding: 7px 12px;
+            border-bottom: 1px solid rgba(37,44,61,0.5);
+            color: var(--c-text-primary);
+            vertical-align: top;
+            max-width: 280px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .preview-table tr:last-child td { border-bottom: none; }
+        .preview-table tbody tr:hover { background: rgba(255,255,255,0.02); }
+        .preview-kv-table thead tr { background: rgba(0,229,160,0.07); }
+        .preview-kv-table th { color: var(--c-accent-green); }
+        .preview-kv-table td:first-child { color: var(--c-text-secondary); width: 180px; }
+        .preview-empty {
+            padding: 16px;
+            text-align: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--c-text-secondary);
+        }
+        #preview-container { display: none; margin-top: 20px; }
+    </style>
+</head>
+
+<body>
+
+    <div class="db-root">
+        <div class="db-header">
+            <div class="db-header-left">
+                <div class="db-logo">&#9650;</div>
+                <div>
+                    <div class="db-title">Forensic Scripts Suite</div>
+                    <div class="db-subtitle">memory_acquisition · analyze_dump · generate_report</div>
+                </div>
+            </div>
+            <div class="db-status">
+                <div class="status-dot"></div>
+                <span id="sys-info">Cargando info del sistema...</span>
+            </div>
+        </div>
+
+        <div class="db-nav">
+            <button class="nav-tab active" onclick="switchTab('overview')">Visión general</button>
+            <button class="nav-tab" onclick="switchTab('script1')">01 · Adquisición<span class="num">acq</span></button>
+            <button class="nav-tab" onclick="switchTab('script2')">02 · Análisis<span class="num">vol</span></button>
+            <button class="nav-tab" onclick="switchTab('script3')">03 · Reporte<span class="num">html</span></button>
+            <button class="nav-tab" onclick="switchTab('remote')">Transferencia Remota<span class="num">ssh</span></button>
+        </div>
+
+        <!-- SECCIÓN EVIDENCIA ACTIVA -->
+        <div id="active-evidence-bar" style="background: var(--c-panel); border-bottom: 1px solid var(--c-border); padding: 12px 24px; display: none;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <div style="display: flex; flex-direction: column;">
+                        <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--c-text-secondary); text-transform: uppercase;">Archivo Cargado</span>
+                        <span id="ev-filename" style="font-size: 13px; font-weight: 600; color: var(--c-accent-green);">memory.raw</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column;">
+                        <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--c-text-secondary); text-transform: uppercase;">Tamaño</span>
+                        <span id="ev-size" style="font-size: 13px; font-weight: 600;">0 MB</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column;">
+                        <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--c-text-secondary); text-transform: uppercase;">OS Detectado</span>
+                        <span id="ev-os" style="font-size: 13px; font-weight: 600;">Windows 11 x64</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column;">
+                        <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--c-text-secondary); text-transform: uppercase;">Hash SHA256</span>
+                        <span id="ev-hash" style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--c-text-secondary);">-</span>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div id="ev-status-dot" class="status-dot"></div>
+                    <span id="ev-status" style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--c-accent-green); text-transform: uppercase;">Listo para análisis</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="db-content">
+            <!-- OVERVIEW -->
+            <div class="tab-panel active" id="tab-overview">
+                <div class="section-header">
+                    <span class="section-badge badge-green">Suite</span>
+                    <span class="section-title">Automated Analysis Dashboard</span>
+                </div>
+                <p
+                    style="margin-bottom: 20px; font-family: 'JetBrains Mono', monospace; color: var(--c-text-secondary); font-size: 13px;">
+                    Ejecuta un flujo automatizado completo de todas las fases o ingresa a cada pestaña para controles
+                    manuales.</p>
+
+                <button id="btn-full-flow" class="btn btn-green" onclick="runFullPipeline()"
+                    style="margin-bottom: 30px; font-size: 14px; padding: 12px 24px;">▶ Ejecutar Memdump & Pipeline
+                    Completo</button>
+
+                <div class="overview-grid">
+                    <div class="overview-card card-green" onclick="switchTab('script1')">
+                        <div class="ov-num">01 / memory_acquisition.py</div>
+                        <div class="ov-name">Adquisición</div>
+                        <div class="ov-desc">Captura la RAM del sistema activo o permite subir un .raw local.</div>
+                        <div class="ov-go">Ir a Adquisición →</div>
+                    </div>
+                    <div class="overview-card card-blue" onclick="switchTab('script2')">
+                        <div class="ov-num">02 / analyze_dump.py</div>
+                        <div class="ov-name">Análisis</div>
+                        <div class="ov-desc">Ejecuta plugins de Volatility 3 sobre el volcado (Mocked via API).</div>
+                        <div class="ov-go">Ir a Análisis →</div>
+                    </div>
+                    <div class="overview-card card-amber" onclick="switchTab('script3')">
+                        <div class="ov-num">03 / generate_report.py</div>
+                        <div class="ov-name">Reporte</div>
+                        <div class="ov-desc">Genera un informe HTML dinámico e incrusta metadatos.</div>
+                        <div class="ov-go">Ver Reporte →</div>
+                    </div>
+                </div>
+
+                <div class="terminal-box" id="term-global">Esperando comandos...&#10;</div>
+            </div>
+
+            <!-- SCRIPT 1 -->
+            <div class="tab-panel" id="tab-script1">
+                <div class="section-header">
+                    <span class="section-badge badge-green">01</span>
+                    <span class="section-title">memory_acquisition.py</span>
+                </div>
+                <div class="info-grid">
+                    <div class="info-card">
+                        <div class="info-card-label">Acción: Capturar RAM equipo local</div>
+                        <button class="btn btn-green" onclick="triggerAcquisition()" id="btn-acq">Iniciar Captura
+                            (Mock)</button>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-card-label">Acción: Subir volcado (.raw)</div>
+                        <input type="file" id="file-upload" class="input-file">
+                        <button class="btn" onclick="uploadRaw()" id="btn-up">Subir Archivo</button>
+                    </div>
+                </div>
+                <div class="terminal-box" id="term-acq">Esperando comandos de adquisición...&#10;</div>
+            </div>
+
+            <!-- SCRIPT 2 -->
+            <div class="tab-panel" id="tab-script2">
+                <div class="section-header">
+                    <span class="section-badge badge-blue">02</span>
+                    <span class="section-title">analyze_dump.py</span>
+                </div>
+                <p
+                    style="margin-bottom: 20px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--c-text-secondary);">
+                    Analizar archivo guardado localmente (data/memory.raw)</p>
+
+                <div id="plugin-selection" style="margin-bottom: 20px; background: var(--c-panel); border: 1px solid var(--c-border); padding: 15px; border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--c-text-primary); text-transform: uppercase; letter-spacing: 0.05em;">Plugins de Volatility 3</div>
+                        <div id="detected-os-badge" class="section-badge badge-blue" style="font-size: 9px;">OS: Unknown</div>
+                    </div>
+                    <div id="plugins-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px;">
+                        <span style="color: var(--c-text-secondary); font-size: 12px;">Cargando plugins...</span>
+                    </div>
+                </div>
+
+                <button class="btn btn-blue" onclick="triggerAnalysis()" id="btn-ana">Ejecutar Análisis Volatility 3</button>
+
+                <div class="terminal-box" id="term-ana" style="margin-top: 20px; height: 300px; border-color: var(--c-accent-blue);">Analista esperando...&#10;</div>
+            </div>
+
+            <!-- SCRIPT 3 -->
+            <div class="tab-panel" id="tab-script3">
+                <div class="section-header">
+                    <span class="section-badge badge-amber">03</span>
+                    <span class="section-title">generate_report.py</span>
+                </div>
+
+                <div class="info-grid">
+                    <div class="info-card">
+                        <div class="info-card-label">Generar Reporte</div>
+                        <button class="btn btn-amber" onclick="triggerReport()" id="btn-rep">Procesar JSON y Exportar HTML</button>
+                    </div>
+                    <div class="info-card" id="download-card" style="display:none; text-align: center; border-color: var(--c-accent-green);">
+                        <div class="info-card-label" style="color:var(--c-accent-green);">Resultados listos</div>
+                        <a href="/download/report" target="_blank" class="btn btn-green" style="text-decoration:none;">Ver Último Reporte</a>
+                    </div>
+                    <!-- HISTORIAL DE REPORTES -->
+                    <div class="info-card" id="reports-history-card" style="border-color: var(--c-accent-blue); margin-top:8px;">
+                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                            <div class="info-card-label" style="color:var(--c-accent-blue); margin-bottom:0;">Historial de Reportes</div>
+                            <button class="btn" style="font-size:10px;padding:4px 10px;margin-left:auto;" onclick="loadReportsList()">↻ Actualizar</button>
+                        </div>
+                        <div id="reports-list-container" style="font-family:'JetBrains Mono',monospace; font-size:11px; max-height:160px; overflow-y:auto;">
+                            <span style="color:var(--c-text-secondary);">Cargando...</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="terminal-box" id="term-rep">Esperando generación...&#10;</div>
+
+                <!-- PREVIEW INLINE DE FINDINGS -->
+                <div id="preview-container">
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px; margin-top:4px;">
+                        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--c-accent-amber);text-transform:uppercase;letter-spacing:0.08em;">Vista previa de Resultados</span>
+                        <span style="flex:1;height:1px;background:var(--c-border);"></span>
+                        <button class="btn" style="font-size:10px;padding:5px 10px;" onclick="document.getElementById('preview-container').style.display='none'">✕ Cerrar</button>
+                    </div>
+                    <div id="preview-findings"></div>
+                </div>
+            </div>
+
+            <!-- REMOTE TRANSFER -->
+            <div class="tab-panel" id="tab-remote">
+                <div class="section-header">
+                    <span class="section-badge badge-purple">SSH / SCP</span>
+                    <span class="section-title">Transferencia automática de reportes</span>
+                </div>
+
+                <div class="overview-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+                    <div class="overview-card card-blue" id="ssh-status-card">
+                        <div class="ov-num">Estado de conexión</div>
+                        <div class="ov-name" id="ssh-status-label"><span style="color:var(--c-accent-amber)">●</span> Verificando...</div>
+                        <div class="ov-desc">Conexión con el servidor remoto de reportes via SSH.</div>
+                    </div>
+                    <div class="overview-card card-green">
+                        <div class="ov-num">Último envío</div>
+                        <div class="ov-name" id="last-transfer-time">N/A</div>
+                        <div class="ov-desc">Fecha y hora de la última transferencia completada con éxito.</div>
+                    </div>
+                    <div class="overview-card card-amber">
+                        <div class="ov-num">Cola de envío</div>
+                        <div class="ov-name" id="queue-count">0 archivos</div>
+                        <div class="ov-desc">Reportes pendientes de envío o en espera de reintento.</div>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-card-label">Historial de Transferencias · logs/transfer.log</div>
+                    <div id="transfer-log-container" style="background:var(--c-bg); border: 1px solid var(--c-border); border-radius: 8px; padding: 12px; font-family:'JetBrains Mono',monospace; font-size: 11px; max-height: 300px; overflow-y: auto; color: var(--c-text-secondary); white-space: pre-wrap;">
+                        <div style="color:var(--c-accent-blue)">Iniciando monitorización remota...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        function switchTab(id) {
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab-' + id).classList.add('active');
+            const tabs = { overview: 0, script1: 1, script2: 2, script3: 3, remote: 4 };
+            document.querySelectorAll('.nav-tab')[tabs[id]].classList.add('active');
+            
+            if (id === 'script2') {
+                loadPlugins();
+            }
+        }
+
+        function logTo(termId, msg) {
+            const t = document.getElementById(termId);
+            if (t) {
+                t.innerHTML += `> ${msg}&#10;`;
+                t.scrollTop = t.scrollHeight;
+            }
+        }
+
+        async function updateSystemInfo() {
+            try {
+                let res = await fetch('/api/system_info');
+                let data = await res.json();
+                document.getElementById('sys-info').innerText = `${data.os_name} | RAM: ${data.ram_total_gb}GB | CPU: ${data.cpu_percent}%`;
+            } catch (e) {
+                document.getElementById('sys-info').innerText = "Sysinfo Inaccesible (Error)";
+            }
+        }
+
+        async function updateActiveEvidence() {
+            try {
+                let res = await fetch('/api/current_dump');
+                let data = await res.json();
+                if (data && data.active_memory_dump) {
+                    document.getElementById('active-evidence-bar').style.display = 'block';
+                    document.getElementById('ev-filename').innerText = data.filename;
+                    document.getElementById('ev-size').innerText = data.size_human;
+                    document.getElementById('ev-os').innerText = data.detected_os;
+                    document.getElementById('ev-hash').innerText = data.hash.substring(0, 32) + "...";
+                    document.getElementById('ev-status').innerText = data.status.replace(/_/g, ' ');
+                    
+                    const dot = document.getElementById('ev-status-dot');
+                    if (data.status === 'ready_for_analysis') {
+                        dot.style.background = 'var(--c-accent-green)';
+                    } else if (data.status === 'analysis_completed') {
+                        dot.style.background = 'var(--c-accent-blue)';
+                    } else {
+                        dot.style.background = 'var(--c-accent-amber)';
+                    }
+                    
+                    // Update OS badge in analysis tab
+                    const badge = document.getElementById('detected-os-badge');
+                    if (badge) {
+                        badge.innerText = `OS: ${data.detected_os.toUpperCase()}`;
+                    }
+                } else {
+                    document.getElementById('active-evidence-bar').style.display = 'none';
+                }
+            } catch (e) {
+                console.error("Error updating active evidence", e);
+            }
+        }
+
+        updateSystemInfo();
+        updateActiveEvidence();
+
+        async function triggerAcquisition() {
+            logTo('term-acq', "Iniciando memory_acquisition.py...");
+            logTo('term-global', "[Fase 1] Adquisición iniciada.");
+            document.getElementById('btn-acq').disabled = true;
+
+            try {
+                let res = await fetch('/api/acquire', { method: 'POST' });
+                let data = await res.json();
+                if (data.status === 'success') {
+                    logTo('term-acq', `Completado: ${data.message}`);
+                    logTo('term-global', `[Fase 1] OK. Evidencia registrada.`);
+                    await updateActiveEvidence();
+                    document.getElementById('btn-acq').disabled = false;
+                    return true;
+                } else {
+                    logTo('term-acq', `Error: ${data.message}`);
+                    document.getElementById('btn-acq').disabled = false;
+                    return false;
+                }
+            } catch (e) {
+                logTo('term-acq', "Error al adquirir memoria.");
+                document.getElementById('btn-acq').disabled = false;
+                return false;
+            }
+        }
+
+        async function uploadRaw() {
+            let fileInput = document.getElementById('file-upload');
+            if (fileInput.files.length === 0) {
+                logTo('term-acq', "Ningún archivo seleccionado."); return;
+            }
+
+            let formData = new FormData();
+            formData.append("file", fileInput.files[0]);
+
+            logTo('term-acq', "Subiendo volcado...");
+            document.getElementById('btn-up').disabled = true;
+
+            try {
+                let res = await fetch('/api/acquire', { method: 'POST', body: formData });
+                let data = await res.json();
+                if (data.status === 'success') {
+                    logTo('term-acq', `Subido: ${data.message}`);
+                    await updateActiveEvidence();
+                } else {
+                    logTo('term-acq', `Error: ${data.message}`);
+                }
+            } catch (e) {
+                logTo('term-acq', "Error al subir.");
+            }
+            document.getElementById('btn-up').disabled = false;
+        }
+
+        async function loadPlugins() {
+            try {
+                let res = await fetch('/api/plugins');
+                let data = await res.json();
+                if(data.status === 'success') {
+                    const list = document.getElementById('plugins-list');
+                    list.innerHTML = '';
+                    
+                    data.categories.forEach(cat => {
+                        const catDiv = document.createElement('div');
+                        catDiv.style.background = 'rgba(255,255,255,0.03)';
+                        catDiv.style.borderRadius = '6px';
+                        catDiv.style.padding = '10px';
+                        
+                        const catTitle = document.createElement('div');
+                        catTitle.style.fontFamily = 'JetBrains Mono, monospace';
+                        catTitle.style.fontSize = '10px';
+                        catTitle.style.color = 'var(--c-accent-blue)';
+                        catTitle.style.marginBottom = '8px';
+                        catTitle.style.textTransform = 'uppercase';
+                        catTitle.innerText = cat.name;
+                        catDiv.appendChild(catTitle);
+
+                        cat.plugins.forEach(p => {
+                            const label = document.createElement('label');
+                            label.style.display = 'flex';
+                            label.style.alignItems = 'flex-start';
+                            label.style.gap = '8px';
+                            label.style.cursor = 'pointer';
+                            label.style.marginBottom = '6px';
+                            
+                            const cb = document.createElement('input');
+                            cb.type = 'checkbox';
+                            cb.value = p.id;
+                            cb.className = 'plugin-checkbox';
+                            cb.style.marginTop = '3px';
+                            
+                            if (p.id.includes('.info') || p.id.includes('.pslist')) {
+                                cb.checked = true;
+                            }
+
+                            const text = document.createElement('div');
+                            text.innerHTML = `<div style="color: var(--c-text-primary); font-size: 12px; font-weight: 600;">${p.name}</div>
+                                             <div style="color: var(--c-text-secondary); font-size: 10px; line-height: 1.2;">${p.description}</div>`;
+                            
+                            label.appendChild(cb);
+                            label.appendChild(text);
+                            catDiv.appendChild(label);
+                        });
+                        list.appendChild(catDiv);
+                    });
+                }
+            } catch (e) {
+                console.error("Error cargando plugins", e);
+                document.getElementById('plugins-list').innerHTML = '<span style="color: var(--c-accent-red);">Error al cargar plugins.</span>';
+            }
+        }
+        
+        loadPlugins();
+
+        async function triggerAnalysis() {
+            const term = document.getElementById('term-ana');
+            term.innerHTML = ">>> INICIANDO MOTOR DE ANÁLISIS VOLATILITY 3 <<<&#10;";
+            logTo('term-global', "[Fase 2] Preparando análisis modular...");
+            document.getElementById('btn-ana').disabled = true;
+
+            const checkboxes = document.querySelectorAll('.plugin-checkbox:checked');
+            const selectedPlugins = Array.from(checkboxes).map(cb => cb.value);
+            
+            if (selectedPlugins.length === 0) {
+                const msg = "Error: Debes seleccionar al menos un plugin.";
+                logTo('term-ana', msg);
+                document.getElementById('btn-ana').disabled = false;
+                return null;
+            }
+
+            try {
+                let res = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ plugins: selectedPlugins })
+                });
+                let data = await res.json();
+                if (data.status === 'success') {
+                    pollAnalysis(data.job_id);
+                    return data.job_id;
+                } else {
+                    logTo('term-ana', `Error: ${data.message}`);
+                    document.getElementById('btn-ana').disabled = false;
+                    return null;
+                }
+            } catch (e) {
+                logTo('term-ana', `Error de red: ${e.message}`);
+                document.getElementById('btn-ana').disabled = false;
+                return null;
+            }
+        }
+
+        let lastLogIndex = 0;
+        async function pollAnalysis(jobId) {
+            const checkStatus = async () => {
+                try {
+                    let res = await fetch(`/api/status/${jobId}`);
+                    let data = await res.json();
+                    
+                    // Update logs
+                    if (data.logs && data.logs.length > lastLogIndex) {
+                        for (let i = lastLogIndex; i < data.logs.length; i++) {
+                            logTo('term-ana', data.logs[i]);
+                        }
+                        lastLogIndex = data.logs.length;
+                    }
+                    
+                    if (data.status === 'completed') {
+                        logTo('term-ana', ">>> ANÁLISIS FINALIZADO CORRECTAMENTE <<<");
+                        logTo('term-global', "[Fase 2] OK. Artefactos procesados.");
+                        document.getElementById('btn-ana').disabled = false;
+                        lastLogIndex = 0;
+                        await updateActiveEvidence();
+                    } else if (data.status === 'failed') {
+                        logTo('term-ana', `!!! ERROR CRÍTICO: ${data.error}`);
+                        document.getElementById('btn-ana').disabled = false;
+                        lastLogIndex = 0;
+                    } else {
+                        setTimeout(checkStatus, 1000);
+                    }
+                } catch (e) {
+                    logTo('term-ana', "Error consultando estado del motor.");
+                    document.getElementById('btn-ana').disabled = false;
+                }
+            };
+            checkStatus();
+        }
+
+        async function triggerReport() {
+            logTo('term-rep', "Generando reporte profesional...");
+            logTo('term-global', "[Fase 3] Renderizando informe HTML...");
+            document.getElementById('btn-rep').disabled = true;
+
+            try {
+                let res = await fetch('/api/report', { method: 'POST' });
+                let data = await res.json();
+                if (data.status === 'success') {
+                    logTo('term-rep', "Reporte generado. Artefactos normalizados incluidos.");
+                    logTo('term-global', "[Fase 3] OK. Informe generado.");
+                    document.getElementById('download-card').style.display = 'block';
+                    document.getElementById('btn-rep').disabled = false;
+                    await renderFindingsPreview();
+                    return true;
+                } else {
+                    logTo('term-rep', `Fallo: ${data.message}`);
+                    document.getElementById('btn-rep').disabled = false;
+                    return false;
+                }
+            } catch (e) {
+                logTo('term-rep', "Error en el pipeline de reporte.");
+                document.getElementById('btn-rep').disabled = false;
+                return false;
+            }
+        }
+
+        async function renderFindingsPreview() {
+            try {
+                const res = await fetch('/api/results');
+                if (!res.ok) return;
+                const results = await res.json();
+                const findings = results.findings || results.artifacts || {};
+                const container = document.getElementById('preview-findings');
+                container.innerHTML = '';
+
+                if (Object.keys(findings).length === 0) {
+                    container.innerHTML = '<div class="preview-empty">Sin resultados para mostrar.</div>';
+                    document.getElementById('preview-container').style.display = 'block';
+                    return;
+                }
+
+                for (const [plugin, data] of Object.entries(findings)) {
+                    const block = document.createElement('div');
+                    block.className = 'preview-section';
+
+                    // Normalise: if data has .items use that, if .data use that
+                    let rows = data;
+                    if (data && typeof data === 'object' && !Array.isArray(data)) {
+                        if (data.items) rows = data.items;
+                        else if (data.data) rows = data.data;
+                    }
+
+                    // Header
+                    const hdr = document.createElement('div');
+                    hdr.className = 'preview-section-header';
+                    const count = Array.isArray(rows) ? rows.length : (rows && typeof rows === 'object' ? Object.keys(rows).length : '-');
+                    hdr.innerHTML = `
+                        <span class="preview-section-title">⛙ ${plugin}</span>
+                        <span class="preview-count">${count} entrada${count !== 1 ? 's' : ''}</span>`;
+                    block.appendChild(hdr);
+
+                    const wrap = document.createElement('div');
+                    wrap.className = 'preview-table-wrap';
+
+                    if (Array.isArray(rows) && rows.length > 0 && typeof rows[0] === 'object') {
+                        // ── List of dicts → columnar table ──
+                        const headers = Object.keys(rows[0]);
+                        const table = document.createElement('table');
+                        table.className = 'preview-table';
+                        table.innerHTML = `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>`;
+                        const tbody = document.createElement('tbody');
+                        rows.forEach(row => {
+                            const tr = document.createElement('tr');
+                            headers.forEach(h => {
+                                const td = document.createElement('td');
+                                td.title = String(row[h] ?? '');
+                                td.textContent = String(row[h] ?? '');
+                                tr.appendChild(td);
+                            });
+                            tbody.appendChild(tr);
+                        });
+                        table.appendChild(tbody);
+                        wrap.appendChild(table);
+
+                    } else if (rows && typeof rows === 'object' && !Array.isArray(rows)) {
+                        // ── Dict → key/value table ──
+                        const table = document.createElement('table');
+                        table.className = 'preview-table preview-kv-table';
+                        table.innerHTML = '<thead><tr><th>Propiedad</th><th>Valor</th></tr></thead>';
+                        const tbody = document.createElement('tbody');
+                        Object.entries(rows).forEach(([k, v]) => {
+                            const tr = document.createElement('tr');
+                            const tdKey = document.createElement('td');
+                            tdKey.textContent = k;
+                            const tdVal = document.createElement('td');
+                            tdVal.textContent = typeof v === 'object' ? JSON.stringify(v) : String(v ?? '');
+                            tr.appendChild(tdKey);
+                            tr.appendChild(tdVal);
+                            tbody.appendChild(tr);
+                        });
+                        table.appendChild(tbody);
+                        wrap.appendChild(table);
+
+                    } else if (typeof rows === 'string') {
+                        // ── Raw string → numbered lines table ──
+                        const lines = rows.split('\n').filter(l => l.trim());
+                        const table = document.createElement('table');
+                        table.className = 'preview-table';
+                        table.innerHTML = '<thead><tr><th>#</th><th>Salida</th></tr></thead>';
+                        const tbody = document.createElement('tbody');
+                        lines.forEach((line, i) => {
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `<td style="color:var(--c-text-secondary);text-align:right;width:40px;">${i+1}</td>
+                                           <td style="white-space:pre-wrap;word-break:break-all;max-width:none;">${line}</td>`;
+                            tbody.appendChild(tr);
+                        });
+                        table.appendChild(tbody);
+                        wrap.appendChild(table);
+
+                    } else {
+                        wrap.innerHTML = '<div class="preview-empty">Sin datos estructurados.</div>';
+                    }
+
+                    block.appendChild(wrap);
+                    container.appendChild(block);
+                }
+
+                document.getElementById('preview-container').style.display = 'block';
+            } catch (e) {
+                console.error('Error rendering findings preview:', e);
+            }
+        }
+
+        async function runFullPipeline() {
+            const btn = document.getElementById('btn-full-flow');
+            btn.disabled = true;
+            btn.innerText = "Pipeline en curso...";
+
+            try {
+                logTo('term-global', ">>> INICIANDO PIPELINE FORENSE HÍBRIDO <<<");
+                const acqSuccess = await triggerAcquisition();
+                if (!acqSuccess) throw new Error("Fallo en Adquisición");
+
+                const jobId = await triggerAnalysis();
+                if (!jobId) throw new Error("Fallo al iniciar Análisis");
+                
+                // Wait for analysis to complete
+                await new Promise((resolve, reject) => {
+                    const check = async () => {
+                        let res = await fetch(`/api/status/${jobId}`);
+                        let data = await res.json();
+                        if (data.status === 'completed') resolve();
+                        else if (data.status === 'failed') reject(new Error(data.error));
+                        else setTimeout(check, 2000);
+                    };
+                    check();
+                });
+
+                const repSuccess = await triggerReport();
+                if (!repSuccess) throw new Error("Fallo en Reporte");
+
+                logTo('term-global', ">>> PIPELINE COMPLETADO <<<");
+                alert("Pipeline finalizado con éxito.");
+            } catch (e) {
+                logTo('term-global', `!!! ERROR: ${e.message}`);
+                alert(`Error: ${e.message}`);
+            }
+
+            btn.innerText = "▶ Ejecutar Memdump & Pipeline Completo";
+            btn.disabled = false;
+        }
+
+        async function loadReportsList() {
+            const container = document.getElementById('reports-list-container');
+            try {
+                const res = await fetch('/api/reports/list');
+                const data = await res.json();
+                if (data.status === 'success' && data.reports.length > 0) {
+                    container.innerHTML = data.reports.map(r => {
+                        const date = new Date(r.modified * 1000).toLocaleString('es-ES');
+                        return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--c-border);">
+                            <span style="color:var(--c-accent-green);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.filename}">${r.filename}</span>
+                            <span style="color:var(--c-text-secondary);font-size:10px;white-space:nowrap;">${r.size_kb} KB · ${date}</span>
+                            <a href="${r.url}" target="_blank" style="color:var(--c-accent-blue);text-decoration:none;font-size:10px;white-space:nowrap;">Ver ↗</a>
+                        </div>`;
+                    }).join('');
+                } else {
+                    container.innerHTML = '<span style="color:var(--c-text-secondary);">No hay reportes generados aún.</span>';
+                }
+            } catch(e) {
+                container.innerHTML = '<span style="color:var(--c-accent-red);">Error al cargar reportes.</span>';
+            }
+        }
+
+        // Load reports list on startup and refresh every 30s
+        loadReportsList();
+        setInterval(loadReportsList, 30000);
+
+        function updateRemoteStatus() {
+            // Fetch remote transfer logs if needed (requires a dedicated API endpoint or serving logs dir)
+            // For now we simulate or use a specific endpoint if we added one
+            fetch('/api/remote/logs').then(r => r.json()).then(data => {
+                if (data.status === 'success') {
+                    const logDiv = document.getElementById('transfer-log-container');
+                    logDiv.innerText = data.logs;
+                    logDiv.scrollTop = logDiv.scrollHeight;
+                    
+                    document.getElementById('ssh-status-label').innerHTML = '<span style="color:var(--c-accent-green)">●</span> Conectado';
+                }
+            }).catch(e => {});
+        }
+
+        setInterval(updateRemoteStatus, 5000);
+        updateRemoteStatus();
+    </script>
+</body>
+
+</html>

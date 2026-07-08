@@ -1,0 +1,860 @@
+#!/bin/bash
+
+source /usr/local/JSBach/conf/variables.conf
+source $DIR/$DIR_PROJECTE/$DIR_SCRIPTS/$FUNCIONS
+source /usr/local/bin/jsbach-logger.sh
+
+######################################################################
+###  Funcions
+######################################################################
+
+fnc_iniciar() {
+    fnc_aturar > /dev/null 2>&1
+
+    ######################################################################
+    ###  FORWARD
+    ######################################################################
+    echo "Iniciant tallafocs"
+    
+    fnc_Modes_crea_regles_forward
+
+    for linia in $(fnc_buscar_Lans | grep -v '#'); do
+        vid=$(echo "$linia" | cut -d';' -f2)
+        nom=$(echo "$linia" | cut -d';' -f1)
+        ip=$(echo "$linia" | cut -d';' -f3)
+        echo "creant cadena Forward-$nom"
+        iptables -N Forward-$nom
+        if [[ "$vid" == "1" ]]; then
+            iptables -A FORWARD -d $ip -j Forward-$nom
+        else
+            iptables -A FORWARD -s $ip -j Forward-$nom
+        fi
+
+        #iptables -N regles_forward_$nom
+        if [ ! -f "$DIR/$DIR_PROJECTE/$DIR_CONF/regles_forward_$nom.conf" ]; then
+            touch "$DIR/$DIR_PROJECTE/$DIR_CONF/regles_forward_$nom.conf"
+            chmod +rx "$DIR/$DIR_PROJECTE/$DIR_CONF/regles_forward_$nom.conf"
+        fi
+    done
+
+    fnc_aplica_regles_forward_vlans
+
+    ######################################################################
+    ###  INPUT
+    ######################################################################
+
+    ##### WAN
+    {
+        echo "creant cadena Input-wan"
+        source $DIR/$DIR_PROJECTE/$DIR_CONF/$IFWAN_CONF
+        iptables -N Input-wan
+        iptables -A INPUT -i $IFW_IFWAN -j Input-wan
+
+        regles_input_wan="$DIR/$DIR_PROJECTE/$DIR_CONF/$IPTABLES_INPUT_WAN"
+
+        if [ ! -f "$regles_input_wan" ]; then
+            touch "$regles_input_wan"
+            chmod +rx "$regles_input_wan"
+            echo "iptables -A Input-wan -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT" >> "$regles_input_wan"
+            echo "iptables -A Input-wan -p icmp -j ACCEPT" >> "$regles_input_wan"
+            echo "iptables -A Input-wan -m conntrack --ctstate NEW -j DROP" >> "$regles_input_wan"
+        fi
+
+        fnc_aplica_regles_input_wan
+    }
+
+    ##### VLANS i WIFI
+
+    fnc_Modes_crea_regles_input
+
+    echo "creant cadenes Input-vlans"
+    for linia in $(fnc_buscar_Lans | grep -v '#'); do
+        vid=$(echo "$linia" | cut -d';' -f2)
+        nom=$(echo "$linia" | cut -d';' -f1)
+        ip=$(echo "$linia" | cut -d';' -f3)
+        echo "creant cadena Input-$nom"
+        iptables -N Input-$nom
+        iptables -A INPUT -s $ip -j Input-$nom 
+        
+        if [ ! -f "$DIR/$DIR_PROJECTE/$DIR_CONF/regles_input_$nom.conf" ]; then
+            touch "$DIR/$DIR_PROJECTE/$DIR_CONF/regles_input_$nom.conf"
+            chmod +rx "$DIR/$DIR_PROJECTE/$DIR_CONF/regles_input_$nom.conf"
+        fi
+    done   
+
+    fnc_aplica_regles_input_vlans
+    log_action "FIREWALL" "INICIAR" "SE HA INICIADO EL FIREWALL"
+
+    sed -i 's/^tallafoc;.*/tallafoc;ACTIVAT/' $DIR/$DIR_PROJECTE/$DIR_CONF/$SERVEIS
+}
+
+fnc_aplica_regles_forward_vlans() {
+    echo "aplicant regles forward vlans"
+    for linia in $(fnc_buscar_Lans | grep -v '#'); do
+        vid=$(echo "$linia" | cut -d';' -f2)
+        nom=$(echo "$linia" | cut -d';' -f1)
+        CONFIGURACIO_FORWARD=$(grep ";$vid;" "$DIR/$DIR_PROJECTE/$DIR_CONF/$TALLAFOCS_VLANS" | cut -d';' -f3)
+        CONFIGURACIO_INPUT=$(grep ";$vid;" "$DIR/$DIR_PROJECTE/$DIR_CONF/$TALLAFOCS_VLANS" | cut -d';' -f4)
+        case "$CONFIGURACIO_FORWARD" in
+            "aillar")
+		log_action "FIREWALL" "CONFIG" "SE HA AISLADO LA VLAN [$vid] EN LA CADENA FORWARD"
+                fnc_configurar aillar $vid
+                ;;
+            "connectar")
+		log_action "FIREWALL" "CONFIG" "SE HA CONECTADO AL FIREWALL LA VLAN [$vid] EN LA CADENA FORWARD"
+                fnc_configurar connectar $vid
+                ;;
+            "desconnectar")
+		log_action "FIREWALL" "CONFIG" "SE HA DESCONECTADO DEL FIREWALL LA VLAN [$vid] EN LA CADENA FORWARD"
+                fnc_configurar desconnectar $vid
+                ;;
+            "connectar_regles_propies")
+		log_action "FIREWALL" "CONFIG" "SE HAN CONECTADO AL FIREWALL LA VLAN [$vid] CON REGLAS PROPIAS EN LA CADENA FORWARD"
+                fnc_configurar connectar_regles_propies $vid
+                ;;
+            "")
+                if grep -q "^$nom;$vid;" "$DIR/$DIR_PROJECTE/$DIR_CONF/$TALLAFOCS_VLANS"; then
+                            sed -i "s/$nom;$vid;.*$/$nom;$vid;desconnectar;$CONFIGURACIO_INPUT;/g" "$DIR/$DIR_PROJECTE/$DIR_CONF/$TALLAFOCS_VLANS"
+                else
+                    echo "$nom;$vid;desconnectar;desconnectar;">>$DIR/$DIR_PROJECTE/$DIR_CONF/$TALLAFOCS_VLANS
+                fi
+                fnc_configurar desconnectar $vid
+                ;;
+        esac
+    done
+}
+
+fnc_aplica_regles_input_vlans() {
+    echo "aplicant regles input vlans"
+    for linia in $(fnc_buscar_Lans | grep -v '#'); do
+        vid=$(echo "$linia" | cut -d';' -f2)
+        nom=$(echo "$linia" | cut -d';' -f1)
+        CONFIGURACIO_FORWARD=$(grep ";$vid;" "$DIR/$DIR_PROJECTE/$DIR_CONF/$TALLAFOCS_VLANS" | cut -d';' -f3)
+        CONFIGURACIO_INPUT=$(grep ";$vid;" "$DIR/$DIR_PROJECTE/$DIR_CONF/$TALLAFOCS_VLANS" | cut -d';' -f4)
+        case "$CONFIGURACIO_INPUT" in
+            "connectar")
+		log_action "FIREWALL" "CONFIG" "SE HA CONECTADO AL FIREWALL LA VLAN [$vid] EN LA CADENA INPUT"
+                fnc_configurar connectar_input $vid
+                ;;
+            "desconnectar")
+		log_action "FIREWALL" "CONFIG" "SE HA DESCONECTADO DEL FIREWALL LA VLAN [$vid] EN LA CADENA INPUT"
+                fnc_configurar desconnectar_input $vid
+                ;;
+            "connectar_regles_propies")
+		log_action "FIREWALL" "CONFIG" "SE HAN CONECTADO AL FIREWALL LA VLAN [$vid] CON REGLAS PROPIAS EN LA CADENA INPUT"
+                fnc_configurar connectar_regles_propies_input $vid
+                ;;
+            "")
+                if grep -q "^$nom;$vid;" "$DIR/$DIR_PROJECTE/$DIR_CONF/$TALLAFOCS_VLANS"; then
+                    sed -i "s/$nom;$vid;.*$/$nom;$vid;$CONFIGURACIO_FORWARD;desconnectar;/g" "$DIR/$DIR_PROJECTE/$DIR_CONF/$TALLAFOCS_VLANS"
+                else
+                    echo "$nom;$vid;desconnectar;desconnectar;">>$DIR/$DIR_PROJECTE/$DIR_CONF/$TALLAFOCS_VLANS
+                fi
+                fnc_configurar desconnectar_input $vid
+                ;;
+        esac
+    done
+}
+
+fnc_Modes_crea_regles_forward() {
+    #aillar
+    if iptables -nvL | grep Mode_forward_aillar 1>&2; then
+        iptables -F Mode_forward_aillar
+    else
+        iptables -N Mode_forward_aillar
+    fi
+    iptables -A Mode_forward_aillar -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+    iptables -A Mode_forward_aillar -p udp -m conntrack --ctstate NEW -j DROP
+    iptables -A Mode_forward_aillar -p tcp -m conntrack --ctstate NEW -j DROP
+    iptables -A Mode_forward_aillar -j DROP
+    echo  "mode aïllar creat"
+    #ports_wls
+    if iptables -nvL | grep Mode_forward_ports_wls 1>&2; then
+        iptables -F Mode_forward_ports_wls
+    else
+        iptables -N Mode_forward_ports_wls
+    fi
+
+    for linia in $(grep -v '#' "$DIR/$DIR_PROJECTE/$DIR_CONF/$IPTABLES_PORTS_WLS"); do
+        protocol=$(echo "$linia" | cut -d';' -f1)
+        num_port=$(echo "$linia" | cut -d';' -f2)
+        iptables -A Mode_forward_ports_wls -p $protocol --dport $num_port -j ACCEPT
+    done
+    echo  "mode ports wls creat"
+    #dominis_wls
+    if iptables -nvL | grep Mode_forward_dominis_wls 1>&2; then
+        iptables -F Mode_forward_dominis_wls
+    else
+        iptables -N Mode_forward_dominis_wls
+    fi
+
+    for linia in $(grep -v '#' "$DIR/$DIR_PROJECTE/$DIR_CONF/$IPTABLES_DOMINIS_WLS"); do
+        ip=$(echo "$linia" | cut -d';' -f1)
+        iptables -A Mode_forward_dominis_wls -d $ip -j ACCEPT
+    done
+    echo  "mode dominis wls creat"
+    #ports_bls
+    if iptables -nvL | grep Mode_forward_ports_bls 1>&2; then
+        iptables -F Mode_forward_ports_bls
+    else
+        iptables -N Mode_forward_ports_bls
+    fi
+
+    for linia in $(grep -v '#' "$DIR/$DIR_PROJECTE/$DIR_CONF/$IPTABLES_PORTS_BLS"); do
+        protocol=$(echo "$linia" | cut -d';' -f1)
+        num_port=$(echo "$linia" | cut -d';' -f2)
+        iptables -A Mode_forward_ports_bls -p $protocol --dport $num_port -j DROP
+    done
+    echo  "mode ports bls creat"
+    #dominis_bls
+    if iptables -nvL | grep Mode_forward_dominis_bls 1>&2; then
+        iptables -F Mode_forward_dominis_bls
+    else
+        iptables -N Mode_forward_dominis_bls
+    fi
+
+    for linia in $(grep -v '#' "$DIR/$DIR_PROJECTE/$DIR_CONF/$IPTABLES_DOMINIS_BLS"); do
+        ip=$(echo "$linia" | cut -d';' -f1)
+        iptables -A Mode_forward_dominis_bls -d $ip -j DROP
+    done
+    echo  "mode dominis bls creat"
+}
+
+fnc_Modes_crea_regles_input() {
+    #acceptar dns,dhcp, portal captiu
+    if iptables -nvL | grep Mode_input-dns_dhcp_pc 1>&2; then
+        iptables -F Mode_input-dns_dhcp_pc
+    else
+        iptables -N Mode_input-dns_dhcp_pc
+    fi
+    while IFS= read -r linia; do
+        # Saltar línies buides i comentaris
+        [[ -z "$linia" || "$linia" =~ ^# ]] && continue
+        
+        eval "$linia"
+    done < "$DIR/$DIR_PROJECTE/$DIR_CONF/$IPTABLES_INPUT_DNS_DHCP_PC"
+    echo  "mode input dns dhcp pc creat"
+}
+
+fnc_Modes_mostrar_cadenes() {
+    iptables -L | grep '^Chain' | grep Mode_$1 |  awk '{print $2}'
+}
+
+fnc_Modes_eliminar_cadenes() {
+    for cadena in $(fnc_Modes_mostrar_cadenes_forward); do
+        iptables -F $cadena
+    done
+}
+
+fnc_aplica_regles_input_wan() {
+    while IFS= read -r linia; do
+        # Saltar línies buides i comentaris
+        [[ -z "$linia" || "$linia" =~ ^# ]] && continue
+        echo "$linia"
+        eval "$linia"
+    done < "$DIR/$DIR_PROJECTE/$DIR_CONF/$IPTABLES_INPUT_WAN"
+    echo "regles input wan aplicades"
+}
+
+fnc_aplicar_regles_propies() {
+    
+    if [ "$#" -lt 2 ]; then
+        echo "Error falta tipus i vlan"
+        exit 1
+    fi
+    
+    echo "$DIR/$DIR_PROJECTE/$DIR_CONF/regles_$1_$2.conf"
+    while IFS= read -r linia; do
+        # Saltar línies buides i comentaris
+        [[ -z "$linia" || "$linia" =~ ^# ]] && continue
+        
+        eval "$linia"
+    done < "$DIR/$DIR_PROJECTE/$DIR_CONF/regles_$1_$2.conf"
+}
+
+fnc_aturar() {
+    echo "Aturar tallafocs"
+    iptables -F
+    iptables -X
+    iptables -P FORWARD ACCEPT
+    iptables -P INPUT ACCEPT
+    iptables -P OUTPUT ACCEPT
+
+    resultat=$($DIR/$DIR_PROJECTE/$DIR_SCRIPTS/enrutar estat)
+
+    # Comprovem si conté la paraula "ACTIVAT"
+    echo "$resultat" | grep -q "$ACTIVAT"
+
+    if [ $? -eq 0 ]; then
+        iptables -t nat -F
+        iptables -t nat -X
+        $DIR/$DIR_PROJECTE/$DIR_SCRIPTS/enrutar iniciar > /dev/null 2>&1
+    else
+        iptables -t nat -F
+        iptables -t nat -X
+    fi
+
+    log_action "FIREWALL" "PARAR" "SE HA DETENIDO EL FIREWALL"
+    sed -i 's/^tallafoc;.*/tallafoc;DESACTIVAT/' $DIR/$DIR_PROJECTE/$DIR_CONF/$SERVEIS
+}
+
+fnc_canviar_mode() {
+   if [ "$#" -lt 3 ]; then
+        echo "Error falta vlan"
+        exit 1
+    fi
+
+    tipus=$1
+    mode=$2
+    shift 2
+
+    if ! $(fnc_validar_vlan_id $1) || ! $(fnc_existeix_vlan_id $1); then
+        echo "Error no existeix vlan $1"
+        exit 1
+    fi
+
+    linia=$(fnc_buscar_Lans | grep ";$1;")
+    nom=$(echo $linia | cut -d';' -f1)
+    vid=$(echo $linia | cut -d';' -f2)
+    CONFIGURACIO_FORWARD=$(grep ";$vid;" "$DIR/$DIR_PROJECTE/$DIR_CONF/$TALLAFOCS_VLANS" | cut -d';' -f3)
+    CONFIGURACIO_INPUT=$(grep ";$vid;" "$DIR/$DIR_PROJECTE/$DIR_CONF/$TALLAFOCS_VLANS" | cut -d';' -f4)
+    
+    if [ "$tipus" == "forward" ]; then
+        cadena="Forward"-$nom
+        CONFIGURACIO_FORWARD=$mode
+    elif [ "$tipus" == "input" ]; then
+        cadena="Input"-$nom
+        CONFIGURACIO_INPUT=$mode
+    fi
+
+    if [ -z "$nom" ]; then
+        echo "Error no existeix vlan $1"
+    else
+        iptables -F $cadena
+        case $mode in
+            connectar_regles_propies)
+                fnc_aplicar_regles_propies $tipus $nom
+	    log_action "TALLAFOCS" "CONFIG" "SE HAN CONECTADO LAS REGLAS PROPIAS EN LA VLAN [$vid] EN LA CADENA $cadena"
+                ;;
+            aillar)
+                iptables -A $cadena -j Mode_"$tipus"_"$mode"
+	    log_action "TALLAFOCS" "CONFIG" "SE HA AISLADO LA VLAN [$vid] EN LA CADENA $cadena"
+                ;;
+            connectar)
+	    log_action "TALLAFOCS" "CONFIG" "SE HA CONECTADO LA VLAN [$vid] EN LA CADENA $cadena"
+                ;;
+            desconnectar)
+                iptables -A $cadena -j DROP
+	    log_action "TALLAFOCS" "CONFIG" "SE HAN DESCONECTADO LA VLAN [$vid] EN LA CADENA $cadena"
+                ;;
+        esac
+        sed -i "s/$nom;$vid;.*$/$nom;$vid;$CONFIGURACIO_FORWARD;$CONFIGURACIO_INPUT;/g" "$DIR/$DIR_PROJECTE/$DIR_CONF/$TALLAFOCS_VLANS"
+    fi 
+} 
+
+fnc_afegir_nova_regla() {
+
+    ############################################
+    # Comprovació d'arguments
+    ############################################
+    if [ "$#" -lt 3 ]; then
+        echo "Ús:"
+        echo "  $0 <VNOM> <POSICIO> \"iptables -A Forward_VNOM ...\""
+        exit 1
+    fi  
+
+    VNOM="$1"
+    
+    if ! $(fnc_existeix_vlan_nom $VNOM) &&   [ [ "$VNOM" != "wan" ] || [ "$VNOM" != "dns_dhcp_pc" ] ]; then
+        echo "Error no existeix vlan $VNOM"
+        exit 1
+    fi
+
+    POSICIO="$2"
+    shift 2
+    REGLA_COMPLETA="$*"
+
+    FITXER=""
+    MODE=""
+    if echo $REGLA_COMPLETA | grep -q "Forward-$VNOM"; then     
+        FITXER="$DIR/$DIR_PROJECTE/$DIR_CONF/regles_forward_$VNOM.conf"
+        MODE="Forward"
+    elif echo $REGLA_COMPLETA | grep -q "Input-$VNOM"; then
+        FITXER="$DIR/$DIR_PROJECTE/$DIR_CONF/regles_input_$VNOM.conf"
+        MODE="Input"
+    elif echo $REGLA_COMPLETA | grep -q "Input-wan"; then
+        FITXER="$DIR/$DIR_PROJECTE/$DIR_CONF/$IPTABLES_INPUT_WAN"
+        MODE="Input"
+    elif echo $REGLA_COMPLETA | grep -q "dns_dhcp_pc"; then
+        FITXER="$DIR/$DIR_PROJECTE/$DIR_CONF/$IPTABLES_INPUT_DNS_DHCP_PC"
+        MODE="Mode_input"      
+    fi
+
+    echo $FITXER $POSICIO $REGLA_COMPLETA
+
+
+    ############################################
+    # Validació mínima de la regla
+    ############################################
+    if ! [[ "$REGLA_COMPLETA" =~ ^iptables[[:space:]]+-A[[:space:]]+$MODE-$VNOM[[:space:]] ]]; then
+        echo "Error: la regla $REGLA_COMPLETA ha de començar per:"
+        echo "  iptables -A $MODE-$VNOM"
+        exit 1
+    fi
+
+    check_regla="${REGLA_COMPLETA/-A /-C }"
+
+    $check_regla 2> /dev/null
+    RET=$?
+
+    if [ "$RET" -eq 2 ]; then
+        echo "Regla MAL formada"
+        exit 1
+    fi
+
+    ############################################
+    # Crear fitxer si no existeix
+    ############################################
+    [ -f "$FITXER" ] || touch "$FITXER"
+    chmod +rx "$FITXER"
+    ############################################
+    # Comptar regles reals
+    ############################################
+    NUM_LINIES=$(grep -v '^\s*$' "$FITXER" | grep -v '^#' | wc -l)
+
+    ############################################
+    # Validar posició
+    ############################################
+    if ! [[ "$POSICIO" =~ ^[0-9]+$ ]] || [ "$POSICIO" -le 0 ]; then
+        POSICIO=$((NUM_LINIES + 1))
+    elif [ "$POSICIO" -gt $((NUM_LINIES + 1)) ]; then
+        POSICIO=$((NUM_LINIES + 1))
+    fi
+
+    ############################################
+    # Inserir regla completa
+    ############################################
+    TMP="$(mktemp)"
+    N=0
+    INSERIDA=0
+
+    while IFS= read -r LINIA; do
+        if [[ -z "$LINIA" || "$LINIA" =~ ^[[:space:]]*# ]]; then
+            echo "$LINIA" >> "$TMP"
+            continue
+        fi
+
+        N=$((N + 1))
+
+        if [ "$N" -eq "$POSICIO" ] && [ "$INSERIDA" -eq 0 ]; then
+            echo "$REGLA_COMPLETA" >> "$TMP"
+            INSERIDA=1
+        fi
+
+        echo "$LINIA" >> "$TMP"
+    done < "$FITXER"
+
+    if [ "$INSERIDA" -eq 0 ]; then
+        echo "$REGLA_COMPLETA" >> "$TMP"
+    fi
+
+    mv "$TMP" "$FITXER"
+    chmod +rx "$FITXER"
+
+    ############################################
+    # Sortida
+    ############################################
+    echo "✔ Regla inserida correctament"
+}
+
+fnc_eliminar_regla() {
+    echo "$@"
+    ############################################
+    # Comprovació d'arguments
+    ############################################
+    if [ "$#" -lt 2 ]; then
+        echo "Ús:"
+        echo "  $0 <VNOM> <POSICIO regla a eliminar>"
+        exit 1
+    fi
+
+    TIPUS="$1"
+    shift
+
+    if ! $(fnc_existeix_vlan_nom $1) && [ [ "$1" != "wan" ] || [ "$1" != "dns_dhcp_pc" ] ] ; then
+        echo "Error no existeix vlan $1"
+        exit 1
+    fi
+
+    VNOM="$1"
+    POSICIO="$2"
+    if [ "$TIPUS" == "wan" ]; then
+        FITXER="$DIR/$DIR_PROJECTE/$DIR_CONF/$IPTABLES_INPUT_WAN"
+    elif [ "$TIPUS" == "input" ]; then
+        FITXER="$DIR/$DIR_PROJECTE/$DIR_CONF/regles_input_$VNOM.conf"
+    elif [ "$TIPUS" == "forward" ]; then
+        FITXER="$DIR/$DIR_PROJECTE/$DIR_CONF/regles_forward_$VNOM.conf"
+    elif [ "$TIPUS" == "dns_dhcp_pc" ]; then
+        FITXER="$DIR/$DIR_PROJECTE/$DIR_CONF/$IPTABLES_INPUT_DNS_DHCP_PC"
+    fi
+
+    if [ ! -f "$FITXER" ]; then
+        echo "ERROR no existeix $FITXER"
+    else
+        sed -i "${POSICIO}d" "$FITXER"
+        echo "Regla $POSICIO eliminada de $FITXER"
+    fi
+}
+
+fnc_configurar() {
+    ARG_1=$1
+    shift
+
+    # Fem switch per executar la funció que toca
+    case "$ARG_1" in
+        aillar)
+            fnc_canviar_mode forward aillar $@
+            ;;
+        desconnectar)
+            fnc_canviar_mode forward desconnectar $@
+            ;;
+        connectar)
+            fnc_canviar_mode forward connectar $@
+            ;;
+        desconnectar_input)
+            fnc_canviar_mode input desconnectar $@
+            ;;
+        connectar_input)
+            fnc_canviar_mode input connectar $@
+            ;;
+        connectar_regles_propies)
+            fnc_canviar_mode forward connectar_regles_propies $@
+            ;;
+        connectar_regles_propies_input)
+            fnc_canviar_mode input connectar_regles_propies $@
+            ;;
+        afegir_nova_regla)
+            VNOM="$1"
+            fnc_afegir_nova_regla $@
+            VID=$(fnc_buscar_Lans | grep "^$VNOM;" | cut -d';' -f2)
+            fnc_canviar_mode forward connectar_regles_propies $VID
+            iptables -nvL Forward-$VNOM
+	    log_action "FIREWALL" "CONFIG" "SE HA AÑADIDO UNA NUEVA REGLA FORWARD CUSTOM EN LA VLAN [$VID]"
+            ;;
+        afegir_nova_regla_input)
+            VNOM="$1"
+            fnc_afegir_nova_regla $@
+            VID=$(fnc_buscar_Lans | grep "^$VNOM;" | cut -d';' -f2)
+            fnc_canviar_mode input connectar_regles_propies $VID
+            iptables -nvL Input-$VNOM
+	    log_action "FIREWALL" "CONFIG" "SE HA AÑADIDO UNA NUEVA REGLA INPUT CUSTOM EN LA VLAN [$VID]"
+            ;;
+        afegir_nova_regla_wan)
+            fnc_afegir_nova_regla wan $@  
+
+            iptables -F Input-wan
+            fnc_aplica_regles_input_wan
+            iptables -nvL Input-wan
+	    log_action "FIREWALL" "CONFIG" "SE HA AÑADIDO UNA NUEVA REGLA WAN CUSTOM"
+            ;;
+        afegir_nova_regla_dns_dhcp_pc)
+            fnc_afegir_nova_regla dns_dhcp_pc dns_dhcp_pc$@
+            ;;
+        eliminar_regla)
+            VNOM="$1"
+            fnc_eliminar_regla forward $@
+            iptables -F Forward-$VNOM
+            linia=$(fnc_buscar_Lans | grep "$VNOM;")
+            vid=$(echo $linia | cut -d';' -f2)
+            fnc_aplicar_regles_propies forward $VNOM
+            iptables -nvL Forward-$VNOM
+	    log_action "FIREWALL" "CONFIG" "SE HA ELIMINADO UNA REGLA FORWARD CUSTOM EN LA VLAN [$vid]"
+            ;;
+        eliminar_regla_input)
+            VNOM="$1"
+            fnc_eliminar_regla input $@
+            iptables -F Input-$VNOM
+            linia=$(fnc_buscar_Lans | grep "$VNOM;")
+            vid=$(echo $linia | cut -d';' -f2)
+            fnc_aplicar_regles_propies input $VNOM
+            iptables -nvL Input-$VNOM
+	    log_action "FIREWALL" "CONFIG" "SE HA ELIMINADO UNA REGLA INPUT CUSTOM EN LA VLAN [$vid]"
+            ;;
+        eliminar_regla_wan)
+            fnc_eliminar_regla wan wan $@
+            iptables -F Input-wan
+            fnc_aplica_regles_input_wan
+            iptables -nvL Input-wan
+	    log_action "FIREWALL" "CONFIG" "SE HA ELIMINADO UNA REGLA WAN CUSTOM"
+            ;;
+        eliminar_regla_dns_dhcp_pc)
+            fnc_eliminar_regla dns_dhcp_pc dns_dhcp_pc $@
+            ;;
+        afegir_port_wls)
+            if [ "$#" -lt 2 ]; then
+                echo "Ús:"
+                echo "  $0 <PROTOCOL> <PORT>"
+                exit 1
+            fi
+
+            PROTO="$1"
+            PORT="$2"
+
+            if ! fnc_validar_protocol "$PROTO"; then
+                echo "Error: Protocol '$PROTO' no és vàlid."
+                echo "Protocols vàlids: tcp, udp, icmp, arp, igmp, all"
+                exit 1
+            fi
+
+            if ! fnc_validar_port "$PORT"; then
+                echo "Error: El port '$PORT' no és vàlid."
+                exit 1
+            fi
+
+            echo "$PROTO;$PORT;" >> "$DIR/$DIR_PROJECTE/$DIR_CONF/$IPTABLES_PORTS_WLS"
+            fnc_Modes_eliminar_cadenes
+            fnc_Modes_crea_regles_forward
+	    log_action "FIREWALL" "CONFIG" "SE HA AÑADIDO EL PUERTO [$PROTO/$PORT] EN LA WHITELIST"
+            ;;
+        eliminar_port_wls)
+            if [ "$#" -lt 2 ]; then
+                echo "Ús:"
+                echo "  $0 <PROTOCOL> <PORT>"
+                exit 1
+            fi
+
+            PROTO="$1"
+            PORT="$2"
+            sed -i "/^${PROTO};${PORT};$/d" "$DIR/$DIR_PROJECTE/$DIR_CONF/$IPTABLES_PORTS_WLS"
+            fnc_Modes_eliminar_cadenes
+            fnc_Modes_crea_regles_forward
+	    log_action "FIREWALL" "CONFIG" "SE HA ELIMINADO EL PUERTO [$PROTO/$PORT] DE LA WHITELIST"
+            ;;
+        
+        afegir_port_bls)
+            if [ "$#" -lt 2 ]; then
+                echo "Ús:"
+                echo "  $0 <PROTOCOL> <PORT>"
+                exit 1
+            fi
+
+            PROTO="$1"
+            PORT="$2"
+
+            if ! fnc_validar_protocol "$PROTO"; then
+                echo "Error: Protocol '$PROTO' no és vàlid."
+                echo "Protocols vàlids: tcp, udp, icmp, arp, igmp, all"
+                exit 1
+            fi
+
+            if ! fnc_validar_port "$PORT"; then
+                echo "Error: El port '$PORT' no és vàlid."
+                exit 1
+            fi
+
+            echo "$PROTO;$PORT;" >> "$DIR/$DIR_PROJECTE/$DIR_CONF/$IPTABLES_PORTS_BLS"
+            fnc_Modes_eliminar_cadenes
+            fnc_Modes_crea_regles_forward
+	    log_action "FIREWALL" "CONFIG" "SE HA AÑADIDO EL PUERTO [$PROTO/$PORT] EN LA BLACKLIST"
+            ;;
+        eliminar_port_bls)
+            if [ "$#" -lt 2 ]; then
+                echo "Ús:"
+                echo "  $0 <PROTOCOL> <PORT>"
+                exit 1
+            fi
+
+            PROTO="$1"
+            PORT="$2"
+            sed -i "/^${PROTO};${PORT};$/d" "$DIR/$DIR_PROJECTE/$DIR_CONF/$IPTABLES_PORTS_BLS"
+            fnc_Modes_eliminar_cadenes
+            fnc_Modes_crea_regles_forward
+	    log_action "FIREWALL" "CONFIG" "SE HA AÑADIDO EL PUERTO [$PROTO/$PORT] EN LA BLACKLIST"
+            ;;
+        afegir_dominis_wls)
+            if [ "$#" -lt 1 ]; then
+                echo "Ús:"
+                echo "  $0 <DOMINI>"
+                exit 1
+            fi
+
+            DOMINI="$1"
+
+            echo "$DOMINI;" >> "$DIR/$DIR_PROJECTE/$DIR_CONF/$IPTABLES_DOMINIS_WLS"
+            fnc_Modes_eliminar_cadenes
+            fnc_Modes_crea_regles_forward
+
+	    log_action "FIREWALL" "CONFIG" "SE HA AÑADIDO EL DOMINIO [$DOMINI] A LA WHITELIST"
+	    ;;
+        eliminar_dominis_wls)
+            if [ "$#" -lt 1 ]; then
+                echo "Ús:"
+                echo "  $0 <DOMINI>"
+                exit 1
+            fi
+
+            DOMINI="$1"
+            sed -i "/^${DOMINI};$/d" "$DIR/$DIR_PROJECTE/$DIR_CONF/$IPTABLES_DOMINIS_WLS"
+            fnc_Modes_eliminar_cadenes
+            fnc_Modes_crea_regles_forward
+
+	    log_action "FIREWALL" "CONFIG" "SE HA ELIMINADO EL DOMINIO [$DOMINI] DE LA WHITELIST"
+            ;;
+        
+        afegir_dominis_bls)
+            if [ "$#" -lt 1 ]; then
+                echo "Ús:"
+                echo "  $0 <DOMINI>"
+                exit 1
+            fi
+
+            DOMINI="$1"
+
+            echo "$DOMINI;" >> "$DIR/$DIR_PROJECTE/$DIR_CONF/$IPTABLES_DOMINIS_BLS"
+            fnc_Modes_eliminar_cadenes
+            fnc_Modes_crea_regles_forward
+	    log_action "FIREWALL" "CONFIG" "SE HA AÑADIDO EL DOMINIO [$DOMINI] A LA BLACKLIST"
+            ;;
+        eliminar_dominis_bls)
+            if [ "$#" -lt 1 ]; then
+                echo "Ús:"
+                echo "  $0 <DOMINI>"
+                exit 1
+            fi
+
+            DOMINI="$1"
+            sed -i "/^${DOMINI};$/d" "$DIR/$DIR_PROJECTE/$DIR_CONF/$IPTABLES_DOMINIS_BLS"
+            fnc_Modes_eliminar_cadenes
+            fnc_Modes_crea_regles_forward
+	    log_action "FIREWALL" "CONFIG" "SE HA ELIMINADO EL DOMINIO [$DOMINI] DE LA BLACKLIST"
+            ;;        
+        *)
+            echo "Error  argumnets aillar,conectar, desconnectar, conectar-input, desconectar-input, connectar_port_wls,connectar_regles_propies,afegir_nova_regla,eliminar_regla,afegir_port_wls,eliminar_port_wls"
+            ;;
+    esac
+}
+
+fnc_mostrar() {
+    ARG_1=$1
+    shift
+
+    # Fem switch per executar la funció que toca
+    case "$ARG_1" in
+        cadenes_forward)
+            fnc_Modes_mostrar_cadenes forward
+            ;;
+        cadenes_input)
+            fnc_Modes_mostrar_cadenes input
+            ;;
+        *)  
+            echo "Error falta opcio cadenes"
+            ;;
+    esac
+}
+
+fnc_estat() {
+
+    if [ $# -eq 0 ]; then
+        if iptables -S | grep -q '^-A'; then
+            echo "$ACTIVAT"
+        else
+            echo "$DESACTIVAT"
+        fi
+        echo " "
+        echo MAIN
+        iptables -nvL --line-numbers
+        echo
+        echo
+        echo NAT
+        iptables -t nat -nvL --line-numbers
+	log_action "FIREWALL" "ESTADO" "SE HA MOSTRADO EL FIREWALL"
+        exit 1
+    fi
+
+    ARG_1=$1
+    shift
+
+    linia=$(fnc_buscar_Lans | grep ";$1;")
+    nom=$(echo $linia | cut -d';' -f1)
+
+    if [ -z $nom ]; then
+        echo "Error no existeix $nom"
+        exit 1
+    fi
+
+    # Fem switch per executar la funció que toca
+    case "$ARG_1" in
+        forward)
+            fnc_estat_vlan Forward-$nom
+            ;;
+        input)
+            fnc_estat_vlan Input-$nom
+            ;;
+        wan) ;;
+        *)
+            echo "Error falta forward,input"
+            ;;
+    esac
+}
+
+fnc_estat_vlan() {
+    if [ $# -eq 0 ]; then
+        echo "Error, falta nom de la vlan"
+        exit 1
+    fi
+
+    cadena=$1
+    num_rules=$(iptables -L "$cadena" -n --line-numbers | tail -n +3 | wc -l)
+    first_rule=$(iptables -L "$cadena" -n --line-numbers | awk 'NR==3')
+
+    if [ -z "$cadena" ]; then
+        echo "Error no existeix vlan $1"
+    else
+        if iptables -C "$cadena" -j Mode_forward_aillar 2> /dev/null; then
+            echo "AÏLLADA"
+        elif [ $num_rules -eq 0 ]; then
+            echo "CONNECTADA"
+        elif  echo "$first_rule" | grep -q "DROP.*0.0.0.0/0.*0.0.0.0/0"; then
+            echo "DESCONNECTADA"
+        else
+            echo "REGLES PROPIES"
+        fi
+    fi
+}
+
+######################################################################
+###  MAIN
+######################################################################
+
+MSG="falta [iniciar, aturar, configurar ,estat]"
+
+# Comprovem que hi hagi almenys un argument (la opció)
+if [ $# -lt 1 ]; then
+    echo "$MSG"
+    exit 1
+fi
+
+OPCIO_1=$1
+shift
+
+# Fem switch per executar la funció que toca
+case "$OPCIO_1" in
+    iniciar)
+        fnc_iniciar $@
+        ;;
+    aturar)
+        fnc_aturar $@
+        ;;
+    configurar)
+        fnc_configurar $@
+        ;;
+    mostrar)
+        fnc_mostrar $@
+        ;;
+    estat)
+        fnc_estat $@
+        ;;
+    *)
+        echo "$MSG"
+        ;;
+esac
