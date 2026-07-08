@@ -1,0 +1,653 @@
+#!/bin/bash
+
+######################################################################
+###  Funcions Comunes
+######################################################################
+
+fnc_nom_alfanumeric() {
+    local NOM=$1
+    local REGEX="^[a-zA-Z0-9]+$"
+
+    if [[ $NOM =~ $REGEX ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+######################################################################
+###  Funcions Iterfaces
+######################################################################
+
+# Funcio per validar si una interficie de xarxa existeix
+# Retorna 0 si existeix, 1 si no.
+fnc_validar_int() {
+    local INT=$1
+
+    # Comprovem que no estigui buit
+    if [ -z "$INT" ]; then
+        return 1
+    fi
+
+    # Comprovem si existeix el directori a /sys/class/net/
+    # Tambe evitem path traversal o caracters estranys basics
+    if [[ "$INT" =~ ^[a-zA-Z0-9_\-]+$ ]] && [ -d "/sys/class/net/$INT" ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Funcio per obtenir interficies Ethernet (sense lo, wifi o bridges)
+fnc_interfaces_ethernet() {
+    for iface in $(ip -o link show | awk -F': ' '{print $2}'); do
+        if [[ "$iface" != "lo" ]] && [[ "$iface" != br* ]]; then
+            # Comprovem si es wifi (si iw retorna dades, ho es)
+            if ! iw dev 2> /dev/null | grep -qw "$iface"; then
+                echo "$iface"
+            fi
+        fi
+    done
+}
+
+fnc_llista_int_wifi() {
+    for iface in $(ip -o link show | awk -F': ' '{print $2}'); do
+        if [[ "$iface" != "lo" ]] && [[ "$iface" != br* ]]; then
+            # Comprovem si es wifi (si iw retorna dades, ho es)
+            if iw dev 2> /dev/null | grep -qw "$iface"; then
+                echo "$iface"
+            fi
+        fi
+    done
+}
+
+fnc_int_wifi_suporta_ap() {
+    local iface="$1"
+
+    # Comprovar que s'ha passat paràmetre
+    if [[ -z "$iface" ]]; then
+        return 2
+    fi
+
+    # Comprovar que la interfície existeix
+    if ! iw dev "$iface" info &> /dev/null; then
+        return 2
+    fi
+
+    # Comprovar suport AP
+    if iw list | grep -A 10 "Supported interface modes:" | grep -q "AP"; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+fnc_int_wifi() {
+    if iwconfig 2> /dev/null | grep -q "IEEE 802.11"; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+######################################################################
+###  Funcions MACs
+######################################################################
+
+# Funcio per validar si una adreca MAC es correcte
+# Retorna 0 si es valida, 1 si no.
+fnc_validar_mac() {
+    local MAC=$1
+    local REGEX="^([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$"
+
+    if [[ $MAC =~ $REGEX ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+fnc_ip_de_mac() {
+    local mac="$1"
+
+    # Comprovem que s'ha passat una MAC
+    if [[ -z "$mac" ]]; then
+        echo "Ús: fnc_ip_de_mac <mac>"
+        return 1
+    fi
+    if ! fnc_validar_mac "$mac"; then
+        echo "MAC $mac no valida"
+        return 1
+    fi
+
+    # Normalitzem a minúscules
+    mac=$(echo "$mac" | tr '[:upper:]' '[:lower:]')
+
+    # Busquem la IP associada a la MAC
+    ip neigh | awk -v mac="$mac" '
+        tolower($0) ~ mac { print $1 }
+    ' | head -n 1
+}
+
+fnc_mac_propia() {
+    local mac="$1"
+
+    # Comprovació de paràmetre
+    [[ -z "$mac" ]] && return 1
+
+    # Normalitzem a minúscules
+    mac=$(echo "$mac" | tr '[:upper:]' '[:lower:]')
+
+    # Busquem coincidències exactes amb les MAC locals
+    ip -o link | awk -v mac="$mac" '
+    {
+        iface=$2
+        gsub(":", "", iface)   # llevem ":" final del nom interfície
+
+        for (i=1; i<=NF; i++) {
+            if ($i == "link/ether") {
+                if (tolower($(i+1)) == mac) {
+                    print iface
+                }
+            }
+        }
+    }'
+}
+######################################################################
+###  Funcions VLANS
+######################################################################
+
+fnc_buscar_Lans() {
+    source $DIR/$DIR_PROJECTE/$DIR_CONF/$WIFI_HOSTAPD_CONF
+
+    cat "$DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_CONF"
+
+    if [ "$interface" != "" ] && fnc_int_wifi_suporta_ap $interface; then
+        cat "$DIR/$DIR_PROJECTE/$DIR_CONF/$WIFI_CONF"
+    fi
+
+    source "$DIR/$DIR_PROJECTE/$DIR_CONF/$VPN_WG_CONF"
+
+    if ip -br l | grep "$vpn_wg_int_router" | grep "UP" > /dev/null; then
+        cat "$DIR/$DIR_PROJECTE/$DIR_CONF/$VPN_WG_LANS" | grep "$vpn_wg_int_router"
+    fi
+
+    if ip -br l | grep "$vpn_wg_int_users" | grep "UP" > /dev/null; then
+        cat "$DIR/$DIR_PROJECTE/$DIR_CONF/$VPN_WG_LANS" | grep "$vpn_wg_int_users"
+    fi
+}
+
+fnc_validar_vlan_id() {
+    local VLANID=$1
+    local REGEX="^[0-9]{1,4}$"
+
+    if [[ $VLANID =~ $REGEX ]] && ((VLANID >= 0 && VLANID <= 4095)); then
+        return 0
+    else
+        return 1
+    fi
+}
+
+fnc_existeix_vlan_id() {
+    local VLANID=$1
+
+    if grep -q ";$VLANID;" "$DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_CONF" || grep -q ";$VLANID;" "$DIR/$DIR_PROJECTE/$DIR_CONF/$WIFI_CONF" || grep -q ";$VLANID;" "$DIR/$DIR_PROJECTE/$DIR_CONF/$VPN_WG_LANS"; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+fnc_existeix_vlan_nom() {
+    local VLANNOM=$1
+
+    if grep -q "$VLANNOM;" "$DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_CONF" || grep -q "$VLANNOM;" "$DIR/$DIR_PROJECTE/$DIR_CONF/$WIFI_CONF"; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+fnc_validar_vlan_nom() {
+    local VLANNOM=$1
+    local REGEX="^[a-zA-Z0-9_]+$"
+
+    if [[ $VLANNOM =~ $REGEX ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+fnc_validar_vlan_untag() {
+    local vlan_id="$1"
+
+    # Comprovar que s ha passat un argument
+    if [[ -z "$vlan_id" ]]; then
+        return 1
+    fi
+
+    # Cas especial: "0" es valid
+    [[ "$vlan_id" == "0" ]] && return 0
+
+    # Comprovar que es un numero sencer
+    if ! [[ "$vlan_id" =~ ^[0-9]+$ ]]; then
+        return 1
+    fi
+
+    # Comprovar rang valid de VLAN ID (1-4094)
+    if ((vlan_id < 0 || vlan_id > 4094)); then
+        echo "vlan id $vlan_id fora de rang"
+        return 1
+    fi
+
+    if ! fnc_existeix_vlan_id "$vlan_id"; then
+        echo "vlan id $vlan_id no existeix"
+        return 1
+    fi
+
+    return 0
+}
+
+fnc_validar_vlan_tag_llista() {
+    local cadena="$1"
+    local prev_vlan=0
+    local elements elem v ini fi
+
+    # Cas especial: "0" es valid
+    [[ "$cadena" == "0" ]] && return 0
+
+    # No espais
+    [[ "$cadena" =~ [[:space:]] ]] && return 1
+
+    IFS=',' read -ra elements << EOF
+$cadena
+EOF
+
+    for elem in "${elements[@]}"; do
+        if [[ "$elem" =~ ^[0-9]+$ ]]; then
+            # VLAN simple
+            fnc_validar_vlan_untag "$elem" || return 1
+            ((elem > prev_vlan)) || return 1
+            prev_vlan="$elem"
+
+        elif [[ "$elem" =~ ^([0-9]+)-([0-9]+)$ ]]; then
+            ini="${BASH_REMATCH[1]}"
+            fi="${BASH_REMATCH[2]}"
+
+            ((ini < fi)) || return 1
+            ((ini > prev_vlan)) || return 1
+
+            for ((v = ini; v <= fi; v++)); do
+                fnc_validar_vlan_untag "$v" || return 1
+            done
+
+            prev_vlan="$fi"
+        else
+            return 1
+        fi
+    done
+
+    return 0
+}
+
+######################################################################
+###  Funcions Protocols
+######################################################################
+
+fnc_validar_protocol() {
+    local PROTO=$1
+    local REGEX="^(tcp|udp|icmp|arp|igmp|all)$"
+
+    if [[ $PROTO =~ $REGEX ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+######################################################################
+###  Funcions Ports
+######################################################################
+
+fnc_validar_port() {
+    local PORT=$1
+    local REGEX="^[0-9]{1,5}$"
+
+    if [[ $PORT =~ $REGEX ]]; then
+        if ((PORT >= 0 && PORT <= 65535)); then
+            return 0
+        else
+            return 1
+        fi
+    else
+        return 1
+    fi
+}
+
+######################################################################
+###  Funcions IPs
+######################################################################
+
+### Funcions
+
+fnc_validar_ip_host() {
+    if [[ "${1%/*}" == "$1" ]]; then
+        echo "ip $1 no valida falta la mascara o es incorrecta"
+        return 1
+    fi
+
+    read ip mask <<< "$(_parse_ip_mask "$1")" || return 1
+
+    local network=$((ip & mask))
+    local broadcast=$((network | (~mask & 0xFFFFFFFF)))
+
+    if ((ip != network && ip != broadcast)); then
+        return 0
+    else
+        return 1
+    fi
+}
+
+fnc_ip_xarxa() {
+    if [[ "${1%/*}" == "$1" ]]; then
+        echo "ip $1 no valida falta la mascara o es incorrecta"
+        return 1
+    fi
+
+    read ip mask <<< "$(_parse_ip_mask "$1")" || return 1
+
+    local network=$((ip & mask))
+
+    echo "$(_int_to_ip $network)/$(_mask_to_prefix $mask)"
+}
+
+fnc_validar_ip_xarxa() {
+    if [[ "${1%/*}" == "$1" ]]; then
+        echo "ip $1 no valida falta la mascara o es incorrecta"
+        return 1
+    fi
+
+    read ip mask <<< "$(_parse_ip_mask "$1")" || return 1
+
+    local network=$((ip & mask))
+
+    if ((ip == network)); then
+        return 0
+    else
+        return 1
+    fi
+}
+
+fnc_validar_mateixa_xarxa() {
+    if [[ "${1%/*}" == "$1" ]]; then
+        echo "ip $1 no valida falta la mascara o es incorrecta"
+        return 1
+    fi
+
+    if [[ "${2%/*}" == "$2" ]]; then
+        echo "ip $2 no valida falta la mascara o es incorrecta"
+        return 1
+    fi
+
+    read ip1 mask1 <<< "$(_parse_ip_mask "$1")" || return 1
+    read ip2 mask2 <<< "$(_parse_ip_mask "$2")" || return 1
+
+    # Fem servir la màscara més restrictiva
+    local mask=$((mask1 & mask2))
+
+    local net1=$((ip1 & mask))
+    local net2=$((ip2 & mask))
+
+    if ((net1 == net2)); then
+        return 0
+    else
+        return 1
+    fi
+}
+
+fnc_validar_ip() {
+    local IFS=.
+    read -r o1 o2 o3 o4 <<< "$1"
+
+    for o in $o1 $o2 $o3 $o4; do
+        [[ "$o" =~ ^[0-9]+$ ]] || return 1
+        ((o >= 0 && o <= 255)) || return 1
+    done
+
+    return 0
+}
+
+fnc_validar_ip1_menor_ip2() {
+    if [[ "${1%/*}" == "$1" ]]; then
+        echo "ip $1 no valida falta la mascara o es incorrecta"
+        return 1
+    fi
+
+    if [[ "${2%/*}" == "$2" ]]; then
+        echo "ip $2 no valida falta la mascara o es incorrecta"
+        return 1
+    fi
+
+    local ip1_int=$(_ip_to_int "${1%/*}")
+    local ip2_int=$(_ip_to_int "${2%/*}")
+
+    if ((ip1_int < ip2_int)); then
+        return 0
+    else
+        return 1
+    fi
+}
+
+fnc_validar_mascara() {
+    local mask="$1"
+    local cidr
+
+    # Si ve en format /24
+    if [[ "$mask" =~ ^/([0-9]+)$ ]]; then
+        cidr="${BASH_REMATCH[1]}"
+    # Si ve només 24
+    elif [[ "$mask" =~ ^[0-9]+$ ]]; then
+        cidr="$mask"
+    else
+        # Suposem màscara decimal
+        fnc_validar_ip "$mask" || return 1
+
+        local mask_int=$(_ip_to_int "$mask")
+
+        # Comprovem que siga contigua (111..1100..00)
+        if (((mask_int & (mask_int + 1)) != 0)); then
+            return 1
+        fi
+
+        # Comptem bits a 1
+        cidr=$(printf "%032d" "$(echo "obase=2;$mask_int" | bc)" | tr -cd '1' | wc -c)
+    fi
+
+    # Validació rang CIDR
+    if [[ "$cidr" =~ ^[0-9]+$ ]] && ((cidr >= 8 && cidr <= 30)); then
+        return 0
+    else
+        return 1
+    fi
+}
+
+fnc_primera_ip_de_host() {
+    ip_cidr=$1
+
+    # Separar IP i prefix
+    ip=${ip_cidr%/*}
+    prefix=${ip_cidr#*/}
+
+    # Separar octets
+    oldIFS=$IFS
+    IFS='.'
+    set -- $ip
+    o1=$1
+    o2=$2
+    o3=$3
+    o4=$4
+    IFS=$oldIFS
+
+    # Convertir IP a enter decimal
+    ip_int=$((o1 * 256 * 256 * 256 + o2 * 256 * 256 + o3 * 256 + o4))
+
+    # Calcular màscara en decimal
+    mask=$(((2 ** 32 - 1) - (2 ** (32 - prefix) - 1)))
+
+    # Calcular adreça de xarxa
+    network=$((ip_int - (ip_int % (2 ** (32 - prefix)))))
+
+    # Primera IP de host
+    first_host=$((network + 1))
+
+    # Convertir de nou a format IP
+    f1=$((first_host / 256 / 256 / 256))
+    f2=$(((first_host / 256 / 256) % 256))
+    f3=$(((first_host / 256) % 256))
+    f4=$((first_host % 256))
+
+    echo "$f1.$f2.$f3.$f4"
+}
+
+fnc_darrera_ip_de_host() {
+    ip_cidr=$1
+
+    # Separar IP i prefix
+    ip=${ip_cidr%/*}
+    prefix=${ip_cidr#*/}
+
+    # Separar octets
+    oldIFS=$IFS
+    IFS='.'
+    set -- $ip
+    o1=$1
+    o2=$2
+    o3=$3
+    o4=$4
+    IFS=$oldIFS
+
+    # Convertir IP a enter decimal
+    ip_int=$((o1 * 256 * 256 * 256 + o2 * 256 * 256 + o3 * 256 + o4))
+
+    # Mida del bloc (nombre total d'adreces de la xarxa)
+    block_size=$((2 ** (32 - prefix)))
+
+    # Adreça de xarxa
+    network=$((ip_int - (ip_int % block_size)))
+
+    # Adreça de broadcast
+    broadcast=$((network + block_size - 1))
+
+    # Darrera IP de host (broadcast - 1)
+    last_host=$((broadcast - 1))
+
+    # Convertir a format IP
+    f1=$((last_host / 256 / 256 / 256))
+    f2=$(((last_host / 256 / 256) % 256))
+    f3=$(((last_host / 256) % 256))
+    f4=$((last_host % 256))
+
+    echo "$f1.$f2.$f3.$f4"
+}
+
+fnc_busca_xarxa_en_iprl() {
+    local ip="$1"
+    local trobada=1
+
+    IFS=. read -r o1 o2 o3 o4 <<< "$ip"
+    local ip_int=$(((o1 << 24) + (o2 << 16) + (o3 << 8) + o4))
+
+    while read -r net rest; do
+        [[ "$net" == "default" ]] && continue
+
+        local net_addr=${net%/*}
+        local prefix=${net#*/}
+
+        IFS=. read -r n1 n2 n3 n4 <<< "$net_addr"
+        local net_int=$(((n1 << 24) + (n2 << 16) + (n3 << 8) + n4))
+
+        local mask=$((0xFFFFFFFF << (32 - prefix) & 0xFFFFFFFF))
+
+        if (((ip_int & mask) == (net_int & mask))); then
+            echo "$net"
+            trobada=0
+            break
+        fi
+    done < <(ip route)
+
+    if ((trobada != 0)); then
+        echo "No s'ha trobat cap xarxa per $ip"
+    fi
+
+    return $trobada
+}
+
+#--------------------------------------
+# Funcions auxiliars internes
+#--------------------------------------
+
+# Obté IP i màscara en format enter
+_parse_ip_mask() {
+    local input=$1
+    local ip mask
+
+    IFS=/ read -r ip mask <<< "$input"
+
+    fnc_validar_ip "$ip" || return 1
+
+    if [[ "$mask" =~ ^[0-9]+$ ]]; then
+        [[ $mask -ge 0 && $mask -le 32 ]] || return 1
+        mask=$(_cidr_to_mask "$mask")
+    else
+        fnc_validar_ip "$mask" || return 1
+        mask=$(_mask_to_int "$mask")
+    fi
+
+    echo "$(_ip_to_int "$ip") $mask"
+}
+
+# Converteix màscara decimal a enter
+_mask_to_int() {
+    _ip_to_int "$1"
+}
+
+_ip_to_int() {
+    ip=$1
+
+    oldIFS=$IFS
+    IFS=.
+    set -- $ip
+    o1=$1
+    o2=$2
+    o3=$3
+    o4=$4
+    IFS=$oldIFS
+
+    echo $((o1 * 256 * 256 * 256 + o2 * 256 * 256 + o3 * 256 + o4))
+}
+
+_int_to_ip() {
+    local ip=$1
+    printf "%d.%d.%d.%d" \
+        $(((ip >> 24) & 255)) \
+        $(((ip >> 16) & 255)) \
+        $(((ip >> 8) & 255)) \
+        $((ip & 255))
+}
+
+_mask_to_prefix() {
+    local mask=$1
+    local prefix=0
+    while ((mask)); do
+        ((prefix += mask & 1))
+        ((mask >>= 1))
+    done
+    echo "$prefix"
+}
+
+# Converteix CIDR a màscara decimal
+_cidr_to_mask() {
+    local cidr=$1
+    echo $((0xFFFFFFFF << (32 - cidr) & 0xFFFFFFFF))
+}

@@ -1,0 +1,232 @@
+#!/bin/bash
+source /usr/local/bin/jsbach-logger.sh
+source /usr/local/JSBach/conf/variables.conf
+source $DIR/$DIR_PROJECTE/$DIR_CONF/$IFWAN_CONF
+source $DIR/$DIR_PROJECTE/$DIR_SCRIPTS/$FUNCIONS
+
+######################################################################
+###  Funcions
+######################################################################
+
+fnc_iniciar() {
+    if [[ -z "$IFW_MODE" && -z "$IFW_IFWAN" ]]; then
+        log_action "IFWAN" "INICIAR" "SE HA INTENTADO INICIAR IFWAN SIN CONFIGURACIÓN"
+        echo "No es pot iniciar, nCOo hi ha configuracio"
+        exit 1
+    fi
+
+    if [[ "$(fnc_estat)" == $ACTIVAT* ]]; then
+        echo "Ja esta activa"
+        exit 1
+    fi
+
+    case "$IFW_MODE" in
+        "dhcp")
+	    log_action "IFWAN" "INICIAR" "SE HA INICIADO IFWAN EN MODO DHCP"
+            dhcpcd $IFW_IFWAN 2>&1
+            ;;
+        "manual")
+            ip a a $IFW_IP/$IFW_MASC dev $IFW_IFWAN
+            ip l s dev $IFW_IFWAN up
+            ip r a default via $IFW_PE
+            if grep "#DNS=" /etc/systemd/resolved.conf; then
+                sed -i 's/#DNS=/DNS='$IFW_S_DNS'/g' /etc/systemd/resolved.conf
+            fi
+
+            if ! grep "DNS=$IFW_S_DNS" /etc/systemd/resolved.conf; then
+                sed -i 's/^DNS=.*/DNS='$IFW_S_DNS'/g' /etc/systemd/resolved.conf
+            fi
+            systemctl restart systemd-resolved
+            log_action "IFWAN" "INICIAR" "SE HA INICIADO CON LA CONFIGURACIÓN MANUAL DE IFWAN. IP [$IFW_IP] MASC [$IFW_MASC] DEV [$IFW_IFWAN] GATEWAY [$IFW_PE] DNS [$IFW_S_DNS]"
+	    ;;
+        *)
+            echo "ERROR al iniciar o dhcp o manual"
+	    log_action "IFWAN" "INICIAR" "LA CONFIGURACIÓN DE IFWAN HA DADO ERROR" "WARNING"
+            exit 1
+            ;;
+    esac
+
+    sed -i 's/^ifwan;.*/ifwan;ACTIVAT/' "$DIR/$DIR_PROJECTE/$DIR_CONF/$SERVEIS"
+}
+
+fnc_aturar() {
+    if [[ -z "$IFW_MODE" && -z "$IFW_IFWAN" ]]; then
+	log_action "IFWAN" "PARADO" "SE HA INTENTADO PARAR IFWAN SIN CONFIGURACIÓN"
+        echo "No es pot aturar, no hi ha configuracio"
+        exit 1
+    fi
+
+    case "$IFW_MODE" in
+        "dhcp")
+            echo "$IFW_MODE desactivant"
+            dhcpcd -k $IFW_IFWAN
+	    log_action "IFWAN" "PARADO" "SE HA PARADO IFWAN EN MODO DHCP"
+            ;;
+        "manual")
+            echo "$IFW_MODE desactivant"
+            ip a d $IFW_IP/$IFW_MASC dev $IFW_IFWAN
+            ip l s dev $IFW_IFWAN down
+	    log_action "IFWAN" "PARADO" "SE HA PARADO IFWAN EN MODO MANUAL"
+            ;;
+        *)
+	    log_action "IFWAN" "PARADO" "NO SE HA PODIDO PARAR ELIGE ENTRE DHCP Y MANUAL"
+            echo "ERROR al aturar o dhcp o manual"
+            exit 1
+            ;;
+    esac
+
+    sed -i 's/^ifwan;.*/ifwan;DESACTIVAT/' "$DIR/$DIR_PROJECTE/$DIR_CONF/$SERVEIS"
+}
+
+fnc_configurar() {
+    local ACCIO=$1
+    shift
+
+    case "$ACCIO" in
+        "guardar")
+            local MODE=$1
+            local INT=$2
+
+            # Validem nombre de parametres
+            if [[ "$MODE" == "dhcp" ]]; then
+                if [ $# -ne 2 ]; then
+		    log_action "IFWAN" "CONF" "ERROR AL GUARDAR LA CONFIGURACIÓN DE IFWAN EN MODO DHCP"
+                    echo "ERROR: Nombre de paràmetres incorrecte per a DHCP."
+                    echo "Ús: ifwan configurar guardar dhcp <interficie>"
+                    exit 1
+                fi
+            elif [[ "$MODE" == "manual" ]]; then
+                if [ $# -ne 5 ]; then
+		    log_action "IFWAN" "CONF" "ERROR AL GUARDAR LA CONFIGURACIÓN DE IFWAN EN MODO MANUAL"
+                    echo "ERROR: Nombre de paràmetres incorrecte per a MANUAL."
+                    echo "Ús: ifwan configurar guardar manual <interficie> <ip/mascara> <gateway> <dns>"
+                    exit 1
+                fi
+            else
+		log_action "IFWAN" "CONF" "ERROR AL GUARDAR LA CONFIGURACIÓN, NO SE HA PUESTO DHCP O MANUAL [$MODE]"
+                echo "ERROR: El mode ha de ser 'dhcp' o 'manual'. S'ha rebut: '$MODE'"
+                echo "Ús: ifwan configurar guardar [dhcp|manual] ..."
+                exit 1
+            fi
+
+            if [[ -n "$IFW_MODE" && -n "$IFW_IFWAN" ]]; then
+                fnc_aturar
+            fi
+
+            # Validacio de la interficie
+            if ! fnc_validar_int "$INT"; then
+		log_action "IFWAN" "CONF" "ERROR EN LA INTERFAZ. [$INT] NO EXISTE" "WARNING"
+                echo "ERROR: La interficie $INT no existeix"
+                exit 1
+            fi
+
+            # Validacio de dades per a mode manual
+            if [[ "$MODE" == "manual" ]]; then
+
+                MASCARA=$(echo "$3" | cut -d'/' -f2)
+                # IP i Mascara
+                if ! fnc_validar_ip_host "$3"; then
+		    log_action "IFWAN" "CONF" "ERROR EN EL FORMATO IP/MASCARA. [$3]"
+                    echo "ERROR: Format IP/Mascara incorrecte ($3)"
+                    exit 1
+                fi
+
+                # Gateway (PE)
+                if ! fnc_validar_ip_host "$4/$MASCARA"; then
+		    log_action "IFWAN" "CONF" "ERROR EN EL FORMATO DE LA PUERTA DE ENLACE. [$4/$MASCARA]"
+                    echo "ERROR: Format Porta d'Enllaç incorrecte ($4/$MASCARA)"
+                    exit 1
+                fi
+
+                if ! fnc_validar_mateixa_xarxa "$3" "$4/$MASCARA"; then
+		    log_action "IFWAN" "CONF" "ERROR EN LA PUERTA DE ENLACE, NO ESTA DENTRO DE LA SUBRED DE LA IP. PE[$4], IP/MASCARA [$3/$MASCARA]"
+                    echo "ERROR: La Porta d'Enllaç ($4) no està dins de la subxarxa de la IP ($3/$MASCARA)"
+                    exit 1
+                fi
+
+                # DNS
+                if ! fnc_validar_ip "$5"; then
+		    log_action "IFWAN" "CONF" "ERROR EN EL FORMATO DEL DNS. [$5]"
+                    echo "ERROR: Format DNS incorrecte ($5)"
+                    exit 1
+                fi
+            fi
+
+            (
+                echo IFW_MODE=$1
+                echo IFW_IFWAN=$2
+                echo IFW_IP=$(echo $3 | cut -d'/' -f1)
+                echo IFW_MASC=$(echo $3 | cut -d'/' -f2)
+                echo IFW_PE=$4
+                echo IFW_S_DNS=$5
+            ) > $DIR/$DIR_PROJECTE/$DIR_CONF/$IFWAN_CONF
+	    log_action "IFWAN" "CONF" "SE HA GUARDADO LA CONFIGURACIÓN DE IFWAN. MODO [$IFW_MODE] IP [$IFW_IP] MASC [$IFW_MASC] DEV [$IFW_IFWAN] GATEWAY [$IFW_PE] DNS [$IFW_S_DNS]"
+            echo "Configuracio guardada i targeta aturada"
+            ;;
+        *)
+	    log_action "IFWAN" "CONF" "ERROR EN LA CONFIGURACIÓN DE IFWAN, ACCIO DESCONEGUDA [$ACCIO]"
+            echo "ERROR: Acció desconeguda: '$ACCIO'"
+            echo "Ús: ifwan configurar guardar"
+            exit 1
+            ;;
+    esac
+}
+
+fnc_mostrar() {
+    echo $IFW_MODE $IFW_IFWAN $IFW_IP $IFW_MASC $IFW_PE $IFW_S_DNS
+    log_action "IFWAN" "MOSTRAR" "SE HA MOSTRADO LA CONFIGURACIÓN DE IFWAN"
+}
+
+fnc_estat() {
+    log_action "IFWAN" "MOSTRAR" "SE HA MOSTRADO EL ESTADO DE IFWAN"
+    if [[ -z "$IFW_MODE" && -z "$IFW_IFWAN" ]]; then
+        echo "$DESCONFIGURAT"
+        echo "No hi ha configuracio"
+        exit 1
+    fi
+    if nslookup google.com > /dev/null 2>&1; then
+        echo "$ACTIVAT"
+        echo " "
+        ip -br addr show dev $IFW_IFWAN
+    else
+        echo "$DESACTIVAT"
+    fi
+
+}
+
+######################################################################
+###  MAIN
+######################################################################
+
+MSG="Error: opcio desconeguda falta [iniciar, aturar, configurar ,estat]"
+
+# Comprovem que hi hagi almenys un argument (la opció)
+if [ $# -lt 1 ]; then
+    echo "$MSG"
+    exit 1
+fi
+
+OPCIO_1=$1
+shift
+
+# Fem switch IFW_PEr executar la funció que toca
+case "$OPCIO_1" in
+    iniciar)
+        fnc_iniciar $@
+        ;;
+    aturar)
+        fnc_aturar $@
+        ;;
+    configurar)
+        fnc_configurar $@
+        ;;
+    mostrar)
+        fnc_mostrar $@
+        ;;
+    estat)
+        fnc_estat $@
+        ;;
+    *)
+        echo "$MSG"
+        ;;
+esac

@@ -1,0 +1,368 @@
+#!/bin/bash
+
+source /usr/local/bin/jsbach-logger.sh
+source /usr/local/JSBach/conf/variables.conf
+source $DIR/$DIR_PROJECTE/$DIR_SCRIPTS/$FUNCIONS
+
+######################################################################
+###  Funcions
+######################################################################
+
+fnc_iniciar() {
+
+    if $DIR/$DIR_PROJECTE/$DIR_SCRIPTS/tallafocs estat | grep -q "$DESACTIVAT*"; then
+	log_action "PORTAL_CAPTIU" "INICIAR" "SE HA INTENTADO INICIAR EL PORTAL CAPTIU PERO ESTABA EL CORTAFUEGOS DESACTIVADO"
+        echo "Cal iniciar tallafocs"
+        exit 0
+    fi
+
+    if [[ "$(fnc_estat)" == "$ACTIVAT*" ]]; then
+    log_action "PORTAL_CAPTIU" "INICIAR" "SE HA INTENTADO INICIAR EL PORTAL CAPTIU PERO YA ESTABA INICIADO"
+        echo "El portal captiu ja està iniciat"
+        exit 0
+    fi
+
+    ##### VLANS
+    for linia in $(fnc_buscar_Lans | grep -v '#'); do
+        nom=$(echo "$linia" | cut -d';' -f1)
+        ip=$(echo "$linia" | cut -d';' -f3)
+        iptables -t nat -N PREROUTING-$nom
+        iptables -t nat -A PREROUTING -s $ip -j PREROUTING-$nom
+    done
+    log_action "PORTAL_CAPTIU" "INICIAR" "SE HA INICIADO EL PORTAL CAPTIU"
+    echo "Iniciant portal_captiu"
+
+    fnc_crear_configuracio
+
+    for linia in $(grep -v '#' "$DIR/$DIR_PROJECTE/$DIR_CONF/$PORTAL_CAPTIU_LANS"); do
+        nom=$(echo "$linia" | cut -d';' -f1)
+        estat=$(echo "$linia" | cut -d';' -f3)
+        if [ "$estat" == "$ACTIVAT" ]; then
+            fnc_iniciar_portal_captiu $nom
+        fi
+    done
+
+    systemctl reload apache2
+
+    sed -i 's/^portal_captiu;.*/portal_captiu;ACTIVAT/' $DIR/$DIR_PROJECTE/$DIR_CONF/$SERVEIS
+}
+
+fnc_iniciar_portal_captiu() {
+
+    if [ "$#" -lt 1 ]; then
+	log_action "PORTAL_CAPTIU" "INICIAR" "SE HA INTENTADO INICIAR EL PORTAL CAPTIU PERO FALTA VLAN"
+        echo "Error falta vlan"
+        exit 1
+    fi
+
+    nom=$1
+
+    for linia in $(grep -v '#' "$DIR/$DIR_PROJECTE/$DIR_CONF/$PORTAL_CAPTIU_LANS" | grep "$nom;"); do
+        ip=$(echo "$linia" | cut -d';' -f2 | cut -d'/' -f1)
+        break
+    done
+
+    iptables -t nat -F PREROUTING-$nom
+
+    iptables -t nat -A PREROUTING-$nom -p tcp -j DNAT --to-destination $ip:80
+    iptables -t nat -A PREROUTING-$nom -p udp -j DNAT --to-destination $ip
+
+    (
+        echo "<VirtualHost $ip:80>"
+        echo "    ServerName $nom.local"
+        echo "    DocumentRoot $DIR/$DIR_PROJECTE/$PORTAL_CAPTIU_WWW"
+        echo "    <Directory $DIR/$DIR_PROJECTE/$PORTAL_CAPTIU_WWW>"
+        echo "        Require all granted"
+        echo "        AllowOverride All"
+        echo "    </Directory>"
+        echo "    RewriteEngine On"
+        echo "    RewriteCond %{REQUEST_URI} !^/cgi-bin/validacio.cgi$"
+        echo "    RewriteCond %{REQUEST_URI} !^/validacio.html$"
+        echo "    RewriteRule ^(.*)$ /validacio.html [R=302,L]"
+        echo "    ErrorLog ${APACHE_LOG_DIR}/error.log"
+        echo "    CustomLog ${APACHE_LOG_DIR}/access.log combined"
+        echo "</VirtualHost>"
+    ) > "/etc/apache2/sites-available/$nom.conf"
+
+    a2ensite $nom.conf
+	log_action "PORTAL_CAPTIU" "INICIAR" "SE HA INICIADO EL PORTAL CAPTIU DE LA WEB"
+}
+
+fnc_aturar_portal_captiu() {
+
+    if [ "$#" -lt 2 ]; then
+	log_action "PORTAL_CAPTIU" "PARADO" "SE HA INTENTADO PARAR EL PORTAL CAPTIU PERO FALTA VLAN Y IP"
+        echo "Error falta vlan i ip"
+        exit 1
+    fi
+
+    nom_lan=$1
+    ip=$2
+
+    iptables -t nat -D PREROUTING -s $ip -j PREROUTING-$nom_lan
+    iptables -t nat -F PREROUTING-$nom_lan
+    iptables -t nat -X PREROUTING-$nom_lan
+
+    if [ -f "/etc/apache2/sites-available/$nom_lan.conf" ]; then
+        a2dissite $nom_lan.conf
+        rm -f "/etc/apache2/sites-available/$nom_lan.conf"
+    fi
+	log_action "PORTAL_CAPTIU" "PARADO" "SE HA PARADO EL PORTAL CAPTIU WIFI"
+}
+
+fnc_aturar() {
+
+    if [[ "$(fnc_estat)" == "$DESACTIVAT*" ]]; then
+        echo "El portal captiu ja està aturat"
+        exit 0
+    fi
+
+    for linia in $(grep -v '#' "$DIR/$DIR_PROJECTE/$DIR_CONF/$PORTAL_CAPTIU_LANS"); do
+        nom=$(echo $linia | cut -d';' -f1)
+        ip=$(echo $linia | cut -d';' -f2)
+        fnc_aturar_portal_captiu $nom $ip
+    done
+
+    systemctl reload apache2
+
+    log_action "PORTAL_CAPTIU" "PARADO" "SE HA PARADO EL PORTAL CAPTIU WEB"
+    echo "Aturant portal_captiu"
+
+    sed -i 's/^portal_captiu;.*/portal_captiu;DESACTIVAT/' $DIR/$DIR_PROJECTE/$DIR_CONF/$SERVEIS
+}
+
+fnc_crear_configuracio() {
+
+    for linia in $(fnc_buscar_Lans | grep -v "#"); do
+        nom=$(echo "$linia" | cut -d';' -f1)
+        ip=$(echo "$linia" | cut -d';' -f4)
+        if ! grep -q "$nom;" "$DIR/$DIR_PROJECTE/$DIR_CONF/$PORTAL_CAPTIU_LANS"; then
+            echo "$nom;$ip;$DESACTIVAT;" >> "$DIR/$DIR_PROJECTE/$DIR_CONF/$PORTAL_CAPTIU_LANS"
+        fi
+    done
+
+    fnc_eliminar_lan
+
+    for linia in $(grep -v '#' "$DIR/$DIR_PROJECTE/$DIR_CONF/$PORTAL_CAPTIU_USUARIS"); do
+        nom=$(echo "$linia" | cut -d';' -f1)
+        contrasenya=$(echo "$linia" | cut -d';' -f2)
+        sed -i "s/$linia/$nom;$contrasenya;;;/" "$DIR/$DIR_PROJECTE/$DIR_CONF/$PORTAL_CAPTIU_USUARIS"
+    done
+}
+
+fnc_eliminar_lan() {
+    for linia in $(grep -v '#' "$DIR/$DIR_PROJECTE/$DIR_CONF/$PORTAL_CAPTIU_LANS"); do
+        nom=$(echo "$linia" | cut -d';' -f1)
+        if ! echo $(fnc_buscar_Lans | grep -v "#") | grep -q "$nom;"; then
+            sed -i "/^$nom;/d" "$DIR/$DIR_PROJECTE/$DIR_CONF/$PORTAL_CAPTIU_LANS"
+	log_action "PORTAL_CAPTIU" "ELIMINAR" "SE HA ELIMINADO LA LAN [$nom] DEL PORTAL CAPTIU" "WARNING"
+        fi
+    done
+}
+
+fnc_guardar_configuracio() {
+
+    if [ "$#" -lt 2 ]; then
+	log_action "PORTAL_CAPTIU" "CONF" "SE INTENTADO GUARDAR LA CONFIGURACIÓN DEL PORTAL CAPTIU PERO FALTA LA VLAN Y EL ESTADO"
+        echo "Error falta vlan i estat"
+        exit 1
+    fi
+
+    nom=$1
+    ip=$2
+    estat=$3
+
+    for linia in $(grep -v '#' "$DIR/$DIR_PROJECTE/$DIR_CONF/$PORTAL_CAPTIU_LANS"); do
+        nom_lan=$(echo "$linia" | cut -d';' -f1)
+        estat_lan=$(echo "$linia" | cut -d';' -f3)
+        if [ "$nom" == "$nom_lan" ] && [ "$estat" != "$estat_lan" ]; then
+            ip=$(echo "$linia" | cut -d';' -f2)
+            sed -i "s|$linia|$nom;$ip;$estat;|g" "$DIR/$DIR_PROJECTE/$DIR_CONF/$PORTAL_CAPTIU_LANS"
+	    log_action "PORTAL_CAPTIU" "CONF" "SE HA GUARDADO LA  NUEVA CONFIGURACIÓN PARA EL PORTAL CAPTIU. NOMBRE [$nom] IP [$ip] ESTADO [$estat]"
+            echo "Guardant configuracio $linia  $nom;$ip;$estat"
+            break
+        fi
+    done
+}
+
+fnc_afegir_usuari() {
+
+    if [ "$#" -lt 2 ]; then
+	log_action "PORTAL_CAPTIU" "CONF" "SE HA INTENTADO AÑADIR UN USUARIO PERO FALTA EL USUARIO Y/O LA CONTRASEÑA" "WARNING"
+        echo "Error falta usuari i contrasenya"
+        exit 1
+    fi
+
+    nom_usuari=$1
+    contrasenya_usuari=$2
+
+    if grep -q "$nom_usuari;" "$DIR/$DIR_PROJECTE/$DIR_CONF/$PORTAL_CAPTIU_USUARIS"; then
+        echo "Error: El usuari $nom_usuari ja existeix"
+	log_action "PORTAL_CAPTIU" "CONF" "SE HA INTENTADO CREAR UN USUARIO CON UN NOMBRE QUE YA EXISTE"
+        exit 1
+    else
+        echo "$nom_usuari;$contrasenya_usuari;;;" >> "$DIR/$DIR_PROJECTE/$DIR_CONF/$PORTAL_CAPTIU_USUARIS"
+	log_action "PORTAL_CAPTIU" "CONF" "SE HA CREADO UN NUEVO USUARIO CON ESTAS CREDENCIALES. NOMBRE DE USUARIO [$nom_usuari] CONTRASEÑA [$contrasenya_usuari]"
+    fi
+}
+
+fnc_eliminar_usuari() {
+    nom_usuari=$1
+    contrasenya_usuari=$2
+
+    if [ -z "$nom_usuari" ] || [ -z "$contrasenya_usuari" ]; then
+	log_action "PORTAL_CAPTIU" "CONF" "SE HA INTENTADO BORRAR UN USUARIO PERO FALTA EL USUARIO Y LA CONTRASEÑA" "WARNING"
+        echo "Error falta usuari i contrasenya"
+        exit 1
+    fi
+
+    for linia in $(grep -v '#' "$DIR/$DIR_PROJECTE/$DIR_CONF/$PORTAL_CAPTIU_USUARIS"); do
+        nom=$(echo "$linia" | cut -d';' -f1)
+        contrasenya=$(echo "$linia" | cut -d';' -f2)
+        if [ "$nom" == "$nom_usuari" ] && [ "$contrasenya" == "$contrasenya_usuari" ]; then
+            sed -i "\|$linia|d" "$DIR/$DIR_PROJECTE/$DIR_CONF/$PORTAL_CAPTIU_USUARIS"
+            log_action "PORTAL_CAPTIU" "CONF" "SE HA BORRADO UN USUARIO CON ESTAS CREDENCIALES. NOMBRE DE USUARIO [$nom_usuari] CONTRASEÑA [$contrasenya_usuari]"
+	    break
+        fi
+    done
+}
+
+fnc_comprovar_usuari() {
+
+    if [ "$#" -lt 2 ]; then
+	log_action "PORTAL_CAPTIU" "CONF" "SE HA INTENTADO COMPROBAR UN USUARIO PERO FALTA USUARIO Y/O CONTRASEÑA"
+        echo "Error falta usuari i contrasenya"
+        exit 1
+    fi
+
+    nom_usuari_a_validar=$1
+    contrasenya_usuari_a_validar=$2
+    ip_usuari_a_validar=$3
+
+    mac_usuari_a_validar=$(ip n l | grep $ip_usuari_a_validar | cut -d' ' -f5)
+    ip_xarxa=$(fnc_busca_xarxa_en_iprl $ip_usuari_a_validar)
+    nom_lan=$(fnc_buscar_Lans | grep -v '#' | grep $ip_xarxa | cut -d';' -f1)
+
+    for linia in $(grep -v '#' "$DIR/$DIR_PROJECTE/$DIR_CONF/$PORTAL_CAPTIU_USUARIS"); do
+        nom_usuari=$(echo "$linia" | cut -d';' -f1)
+        contrasenya_usuari=$(echo "$linia" | cut -d';' -f2)
+        ip_usuari=$(echo "$linia" | cut -d';' -f3)
+        mac_usuari=$(echo "$linia" | cut -d';' -f4)
+        if [ "$nom_usuari" == "$nom_usuari_a_validar" ] && [ "$contrasenya_usuari" == "$contrasenya_usuari_a_validar" ]; then
+            if [ -z "$ip_usuari" ] && [ -z "$mac_usuari" ]; then
+                echo "Usuari $nom_usuari_a_validar validat"
+		log_action "PORTAL_CAPTIU" "CONF" "SE HA VALIDADO EL USUARIO [$nom_usuari]"
+                iptables -t nat -I PREROUTING-$nom_lan 1 -s $ip_usuari_a_validar -m mac --mac-source $mac_usuari_a_validar -j ACCEPT
+                sed -i "s/$linia/$nom_usuari;$contrasenya_usuari;$ip_usuari_a_validar;$mac_usuari_a_validar;/" "$DIR/$DIR_PROJECTE/$DIR_CONF/$PORTAL_CAPTIU_USUARIS"
+            else
+		log_action "PORTAL_CAPTIU" "CONF" "SE HA VALIDADO UN USUARIO QUE YA ESTA VALIDADO [$nom_usuari]"
+                echo "VALIDAT L'usuari $nom_usuari_a_validar ja està validat"
+
+            fi
+            exit 0
+        fi
+    done
+
+    log_action "PORTAL_CAPTIU" "CONF" "SE HA INTENTADO VALIDAR UN USUARIO QUE NO EXISTE [$nom_usuari]"
+    echo "ERROR: El usuari $nom_usuari_a_validar no existeix"
+    exit 1
+}
+
+fnc_mostrar_configuracio() {
+    fnc_eliminar_lan
+    log_action "PORTAL_CAPTIU" "MOSTRAR" "SE HA MOSTRADO LA CONFIGURACIÓN DEL PORTAL CAPTIU"
+    cat "$DIR/$DIR_PROJECTE/$DIR_CONF/$PORTAL_CAPTIU_LANS" | grep -v '#'
+}
+
+fnc_mostrar_usuaris() {
+    log_action "PORTAL_CAPTIU" "CONF" "SE HA MOSTRADO LA LISTA DE USUARIOS"
+    cat "$DIR/$DIR_PROJECTE/$DIR_CONF/$PORTAL_CAPTIU_USUARIS" | grep -v '#'
+}
+
+fnc_configurar() {
+    OPCIO=$1
+    shift
+
+    case "$OPCIO" in
+        "mostrar_configuracio")
+            fnc_mostrar_configuracio $@
+            ;;
+        "guardar_configuracio")
+            fnc_guardar_configuracio $@
+            ;;
+        "afegir_usuari")
+            fnc_afegir_usuari $@
+            ;;
+        "eliminar_usuari")
+            fnc_eliminar_usuari $@
+            ;;
+        "mostrar_usuaris")
+            fnc_mostrar_usuaris $@
+            ;;
+        "comprovar_usuari")
+            fnc_comprovar_usuari $@
+            ;;
+        *)
+            echo "Error en la opcio [ mostrar_configuracio, guardar_configuracio, afegir_usuari, eliminar_usuari, mostrar_usuaris ]"
+            ;;
+    esac
+}
+
+fnc_estat() {
+
+    fnc_crear_configuracio
+    log_action "PORTAL_CAPTIU" "MOSTRAR" "SE HA MOSTRADO EL ESTADO DEL PORTAL CAPTIU"
+
+    if iptables -t nat -nL PREROUTING | grep "PREROUTING" | grep -v "Chain" > /dev/null; then
+        echo "$ACTIVAT"
+        echo ""
+        for linia in $(grep -v '#' "$DIR/$DIR_PROJECTE/$DIR_CONF/$PORTAL_CAPTIU_LANS"); do
+            nom=$(echo "$linia" | cut -d';' -f1)
+            ip_masc=$(echo "$linia" | cut -d';' -f2)
+            ip=$(echo "$ip_masc" | cut -d'/' -f1)
+            estat_guardat=$(echo "$linia" | cut -d';' -f3)
+            if iptables -t nat -C PREROUTING-$nom -p tcp -j DNAT --to-destination $ip:80 2> /dev/null; then
+                estat="$ACTIVAT"
+            else
+                estat="$DESACTIVAT"
+            fi
+            echo "$estat $nom $(fnc_ip_xarxa $ip_masc)"
+        done
+    else
+        echo "$DESACTIVAT"
+    fi
+}
+
+######################################################################
+###  MAIN
+######################################################################
+
+MSG="falta [iniciar, aturar, configurar ,estat]"
+
+# Comprovem que hi hagi almenys un argument (la opció)
+if [ $# -lt 1 ]; then
+    echo "$MSG"
+    exit 1
+fi
+
+OPCIO_1=$1
+shift
+
+# Fem switch per executar la funció que toca
+case "$OPCIO_1" in
+    "iniciar")
+        fnc_iniciar $@
+        ;;
+    "aturar")
+        fnc_aturar $@
+        ;;
+    "configurar")
+        fnc_configurar $@
+        ;;
+    "estat")
+        fnc_estat $@
+        ;;
+    *)
+        echo "$MSG"
+        ;;
+esac

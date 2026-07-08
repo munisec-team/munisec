@@ -1,0 +1,16 @@
+[Unit]
+Description=Forensic Suite Dashboard - Web Interface
+After=network.target
+
+[Service]
+Type=simple
+User=PLACEHOLDER_USER
+WorkingDirectory=PLACEHOLDER_BASE_DIR/backend
+Environment="PATH=PLACEHOLDER_BASE_DIR/runtime/bin"
+Environment="PYTHONPATH=PLACEHOLDER_BASE_DIR/backend"
+ExecStart=PLACEHOLDER_BASE_DIR/runtime/bin/python PLACEHOLDER_BASE_DIR/backend/app.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
