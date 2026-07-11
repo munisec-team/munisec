@@ -18,8 +18,8 @@ Hay 2 formas de juntar el código de tu entorno aislado junto con el código "en
 - La primera es, directamente en local, hacer lo que se conoce como un **`git merge`:** Une dos ramas en tu ordenador LOCAL de forma inmediata.
 <br><br>
 Te da la posibilidad de, antes de fusionarlas, comprobar conflictos que puedan haber con los cambios realizados en local, pero nadie es conocedor de estos cambios, salvo la persona que esté trabajando con esa rama en ese momento. Si haces un merge a `main` y haces push a github, el cambio es definitivo.
-> [!WARNING]
-> No hay paso intermedio de revisión por parte del resto del equipo. Se pide **NO USAR** esta función, solo se explica como dato informativo.
+
+> [!WARNING] No hay paso intermedio de revisión por parte del resto del equipo. Se pide **NO USAR** esta función, solo se explica como dato informativo.
 
 - La segunda opción es mediante un **Pull Request:** No es un comando de Git persé, es una característica de plataformas como GitHub.
 <br><br>
@@ -53,7 +53,8 @@ git pull
 
 Ahora creas una copia aislada donde harás tu trabajo.<br>
 Asegúrate de ponerle un **nombre distinguible** y que refleje el cambio que quieres hacer.<br>
-> [!IMPORTANT] Los cambios deberían de ser sustanciales (no solo cambiar un par de líneas) pero tampoco se deben de alargar mucho en el tiempo (preferiblemente, que se puedan acabar el mismo día).<br><br>Ese es el baremo recomendado a seguir para establecer el nombre de la rama.<br><br>
+> [!IMPORTANT]
+> Los cambios deberían de ser sustanciales (no solo cambiar un par de líneas) pero tampoco se deben de alargar mucho en el tiempo (preferiblemente, que se puedan acabar el mismo día).<br><br>Ese es el baremo recomendado a seguir para establecer el nombre de la rama.<br><br>
 
 Algunos ejemplos podrían ser:
 - feat/telegram-bot
