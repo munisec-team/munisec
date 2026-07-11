@@ -19,7 +19,8 @@ Hay 2 formas de juntar el código de tu entorno aislado junto con el código "en
 <br><br>
 Te da la posibilidad de, antes de fusionarlas, comprobar conflictos que puedan haber con los cambios realizados en local, pero nadie es conocedor de estos cambios, salvo la persona que esté trabajando con esa rama en ese momento. Si haces un merge a `main` y haces push a github, el cambio es definitivo.
 
-> [!WARNING] No hay paso intermedio de revisión por parte del resto del equipo. Se pide **NO USAR** esta función, solo se explica como dato informativo.
+> [!WARNING]
+> No hay paso intermedio de revisión por parte del resto del equipo. Se pide **NO USAR** esta función, solo se explica como dato informativo.
 
 - La segunda opción es mediante un **Pull Request:** No es un comando de Git persé, es una característica de plataformas como GitHub.
 <br><br>
@@ -27,7 +28,8 @@ Antes de fusionar las ramas, se hace una solicitud que puede ser revisada por el
 Básicamente, **lo pausa** en una interfaz web amigable donde el equipo puede ver un "Antes y Después" del código, dejar comentarios línea por línea, y requerir aprobaciones explícitas antes de que el merge ocurra realmente.<br><br>
 Cuando el request es aceptado, simplemente se hace un `git merge` por debajo.
 
-> [!WARNING] Para esta opción, es necesario subir previamente los cambios a github.
+> [!WARNING]
+> Para esta opción, es necesario subir previamente los cambios a github.
 
 ---
 
