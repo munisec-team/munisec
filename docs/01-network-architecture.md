@@ -20,6 +20,24 @@ El tráfico de entrada desde Internet se gestiona a través de un firewall **pfS
 
 La red interna (`10.1.0.0/16`) se divide en las siguientes VLANs gestionadas por switches TP-Link:
 
+- 10.1.1.0/24 (VLAN 1 - Administración)
+    - 10.1.2.0/24 (VLAN 2 - DMZ)
+    - 10.1.3.0/24 (VLAN 3 - AD/Odoo)
+    - 10.1.4.0/24 (VLAN 4 - SOC)
+    - 10.1.5.0/24 y 10.1.6.0/24 (VLAN 5 y 6 - Trabajadores)
+    - 10.1.99.0/24 (WiFi - Trabajadores)
+Todas las IPs internas de esta sede pertenecen a la subred `10.1.x.x`.
+
+- 10.2.1.0/24 (VLAN 1 - Administración)
+    - 10.2.2.0/24 (VLAN 2 - DMZ)
+    - 10.2.15.0/24 y 10.2.16.0/24 (VLAN 15 y 16 - Biblioteca)
+    - 10.2.99.0/24 (WiFi - Pública)
+
+Ambas sedes tienen salida a Internet independiente, cada una con su propio router pfSense dedicado (con IPs "públicas" 172.29.230.160 y .161 respectivamente).<br>
+
+A continuación, se conectaron ambos pfSense a través de una VPN **Wireguard** en la red 10.200.0.0/30.<br>
+También se abrió un tunel VPN para simular a los trabajadores que quisieran trabajar en remoto. Este túnel se implementó exclusivamente en el Ayto.<br><br>
+
 | VLAN | Subred | Propósito | Servicios / Equipos Críticos |
 |------|--------|-----------|-----------------------------|
 | **VLAN 1** | `10.1.1.0/24` | **Administración** | Gestión de red, switches, acceso privilegiado |
