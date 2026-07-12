@@ -1,77 +1,88 @@
-﻿# 🏛️ munisec: Infraestructura Municipal Segura
+<div align="center">
+
+# 🏛️ munisec: Infraestructura Municipal Segura
 
 ![Wazuh](https://img.shields.io/badge/SIEM-Wazuh-blue)
 ![Suricata](https://img.shields.io/badge/IDS%2FIPS-Suricata-red)
 ![pfSense](https://img.shields.io/badge/Firewall-pfSense-orange)
 
+</div>
+
+<br>
+
 **munisec** es un proyecto integral de ciberseguridad que simula la infraestructura IT completa de un ayuntamiento ficticio: **el ayuntamiento de Guarroman**.
-Fue desarrollado por un equipo de especialistas durante tres meses, y el proyecto abarca desde el diseño y despliegue de redes hasta la implementación de un SOC, ejecución de operaciones de Red Team, bastionado profundo, análisis forense avanzado así como seguir la normativa establecida para organismos públicos (ayuntamientos).
+
+Fue desarrollado por un equipo de especialistas durante tres meses, y el proyecto abarca desde el diseño y despliegue de redes hasta la implementación de un SOC, ejecución de operaciones de Red Team, bastionado profundo, análisis forense y la aplicación de la normativa correspondiente como el ENS, RGPD, AEPD, etc.
 
 <div align="center">
   <img src="assets/branding/00-portada.png" alt="Ayuntamiento de Guarroman" width="600"/>
 </div>
 
-## 📌 Resumen Ejecutivo
+## 📌 Origen del proyecto
+El objetivo del proyecto era el siguiente: nos dividimos en 2 grupos ficticios, el equipo de **[Guarroman](https://github.com/joliher/munisec)** y el equipo de **[Benimerda](https://pablogonzalez-personalweb.lovable.app/proyectos/benimerda)**.
 
-El proyecto se estructuró como un laboratorio realista donde se desplegaron dos sedes conectadas por VPN: el Ayuntamiento (Ayto) y la Casa de la Cultura (CC).
-Posteriormente, la infraestructura fue sometida a pruebas de intrusión severas, tanto propias como de un equipo rival, además de enfrentarse a incidentes reales de desastre físico (tormenta eléctrica) que forzaron la ejecución de *planes de recuperación ante desastres*.
+El proyecto se estructuró como un laboratorio realista donde en cada equipo se desplegarían dos sedes conectadas por VPN: el Ayuntamiento (Ayto) y la Casa de la Cultura (CC).
 
-El objetivo final fue diseñar, comprometer, recuperar y securizar completamente una red institucional, aplicando normativas como el **Esquema Nacional de Seguridad (ENS)** y el **RGPD**.
+Se planificaron e implementaron las infraestructuras de red correspondiente a cada equipo y, una vez nos aseguramos de que ambos equipos estábamos preparados, procedimos a someter la infraestructura del equipo rival a pruebas de intrusión severas para poder practicar y aprender sobre habilidades de Red Team en un entorno lo más cercano a la realidad posible.
+
+Además, ambos equipos tuvimos que enfrentarnos a incidentes reales de desastre físico (como una tormenta eléctrica) que forzaron la ejecución de *planes de recuperación ante desastres*.
+
+El objetivo final fue diseñar, comprometer, recuperar y securizar completamente una red institucional, aplicando la normativa correspondiente.
 
 ## 🏗️ Arquitectura de Red
 
-La topología de red se divide en dos sedes físicas conectadas mediante un túnel VPN:
+![Arquitectura de Red Pre-incidente](./assets/diagrams/network-topology-0.jpeg)
 
-- **Ayuntamiento**: Sede principal, compuesta por varias VLANs:
-    - 10.1.1.0/24 (VLAN 1 - Administración)
-    - 10.1.2.0/24 (VLAN 2 - DMZ)
-    - 10.1.3.0/24 (VLAN 3 - AD/Odoo)
-    - 10.1.4.0/24 (VLAN 4 - SOC)
-    - 10.1.5.0/24 y 10.1.6.0/24 (VLAN 5 y 6 - Trabajadores)
-    - 10.1.99.0/24 (WiFi - Trabajadores)
-Todas las IPs internas de esta sede pertenecen a la subred `10.1.x.x`.
+La topología de red del equipo de Guarroman se dividía en dos sedes físicas conectadas mediante un túnel VPN:
 
-- **Casa de la Cultura (CC)**: Sede secundaria, compuesta por:
-    - 10.2.1.0/24 (VLAN 1 - Administración)
-    - 10.2.2.0/24 (VLAN 2 - DMZ)
-    - 10.2.15.0/24 y 10.2.16.0/24 (VLAN 15 y 16 - Biblioteca)
-    - 10.2.99.0/24 (WiFi - Pública)
-Las IPs de esta otra sede pertenecen a la subred `10.2.x.x`.
+- **Ayuntamiento**: Sede principal que estaba compuesta por una DMZ, un Domain Controller (AD), un ERP (Odoo), un SIEM (Wazuh), varios equipos cliente para poder hacer pruebas contra el AD y el SIEM, y una red WiFi para uso exclusivo de los trabajadores.
 
-Ambas sedes tienen salida a Internet independiente, cada una con su propio router pfSense dedicado.
-Inicialmente las VPNs se establecían a través de los pfSense (IPs públicas `172.29.230.160` y `.161`), pero tras un fallo eléctrico la VPN se redesplegó a través de routers Linux (JSBach).
+- **Casa de la Cultura (CC)**: Sede secundaria, compuesta por una DMZ, varios equipos clientes que eran de uso público (simulando algo parecido al funcionamiento de una biblioteca) y una red WiFi también pública para cualquiera.
 
-*Ver diagrama de topología en [01-network-architecture.md](docs/01-network-architecture.md).*
+Ambas sedes tenían su propia salida a Internet de forma independiente, cada una con su propio router pfSense.
+
+Posteriormente, se configuraron 2 túneles VPN:
+- El primero sirvió para conectar ambos routers (pfSense) a través de una VPN **Wireguard**, lo que permitiría al **SOC** acceder a los equipos cliente de la **Casa de la Cultura**, así como permitiría a estos mismos equipos cliente unirse al AD para poder ser administrados desde ahí.
+
+- El segundo se abrió para simular la necesidad de una empresa por querer ofrecer una modalidad de teletrabajo a sus trabajadores, permitiéndoles conectarse a la red empresarial sin necesidad de estar físicamente en el lugar.
+
+Este segundo túnel se implementó **exclusivamente** en el Ayto dado que el router (pfSense del Ayto) ya se encontraba comunicado con la CC a través de VPN, por lo que no era necesario configurar un tercer túnel para este mismo propósito. Los teletrabajadores tendrían acceso a ambas sedes sin necesidad de configuración adicional.
+
+**Incidente de Recuperación ante Desastres:**
+Las VPNs se configuraron inicialmente en los pfSense, pero tras un fallo eléctrico (simulado) que dejó a los dispositivos inutilizables, se ejecutó un rediseño de emergencia y se redesplegaron ambos túneles directamente en los routers Linux internos mediante [JSBach](./software/jsbach/).
+
+Después de eliminar los pfSense, la distribución final de la red quedó de la siguiente manera:
+
+![Arquitectura de Red Post-incidente](./assets/diagrams/network-topology-1.jpeg)
 
 ## 📂 Estructura del Repositorio
+Toda la documentación técnica se encuentra en la carpeta [`/docs`](./docs/).
 
-Toda la documentación técnica se encuentra en la carpeta `/docs`.
+### 🌐 Infraestructura y Redes
+- [01. Arquitectura de Red](./docs/01-network-architecture.md) - Topología en detalle, VLANs, y routers (JSBach, pfSense).
+- [02. Infraestructura y Servicios](./docs/02-infrastructure.md) - Active Directory, Odoo, DMZ.
+- [03. SOC y SIEM](./docs/03-soc-siem.md) - Wazuh, Suricata, integración de alertas y VirusTotal.
 
 ### 🛡️ Blue Team & Defensa
-- [01. Arquitectura de Red](docs/01-network-architecture.md) - Topología, VLANs, y routers (JSBach, pfSense).
-- [02. Infraestructura y Servicios](docs/02-infrastructure.md) - Active Directory, Odoo, DMZ.
-- [03. SOC y SIEM](docs/03-soc-siem.md) - Wazuh, Suricata, integración de alertas.
-- [04. Bastionado (Hardening)](docs/04-hardening.md) - Aseguramiento de servidores, 2FA, iptables.
-- [08. Respuesta a Incidentes](docs/08-blue-team.md) - Gestión del desastre eléctrico y restauración.
-- [09. Análisis Forense](docs/09-forensics.md) - Metodología forense, volcado de memoria, scripts de automatización.
-- [10. Cumplimiento Legal (ENS/RGPD)](docs/10-compliance.md) - Adecuación al Esquema Nacional de Seguridad.
+- [04. Bastionado (Hardening)](./docs/04-hardening.md) - Aseguramiento de servidores, 2FA, iptables.
+- [08. Respuesta a Incidentes](./docs/08-blue-team.md) - Gestión del desastre eléctrico y restauración.
+- [09. Análisis Forense](./docs/09-forensics.md) - Metodología forense, volcado de memoria, scripts de automatización.
+- [10. Cumplimiento Legal (ENS/RGPD)](./docs/10-compliance.md) - Adecuación al Esquema Nacional de Seguridad.
 
 ### ⚔️ Red Team & Ataque
-- [05. Inteligencia de Fuentes Abiertas (OSINT)](docs/05-osint.md) - Metodología de reconocimiento de perfiles gubernamentales.
-- [06. Operaciones Red Team](docs/06-red-team.md) - Informe completo de intrusión, desde el acceso inicial hasta la escalada a `root`.
-- [07. Vulnerabilidades Identificadas](docs/07-findings.md) - Matriz de hallazgos críticos.
+- [05. Inteligencia de Fuentes Abiertas (OSINT)](./docs/05-osint.md) - Metodología de reconocimiento de perfiles gubernamentales del equipo de **Benimerda**.
+- [06. Operaciones Red Team](./docs/06-red-team.md) - Informe completo de intrusión, desde el acceso inicial hasta la escalada a `root`.
+- [07. Vulnerabilidades Identificadas](./docs/07-findings.md) - Matriz de hallazgos críticos.
 
 ## 👥 El Equipo
-
 Este proyecto fue desarrollado por un grupo de 8 técnicos de ciberseguridad. Para consultar la aportación detallada de cada integrante a la infraestructura, pentesting, desarrollo de scripts y documentación, consulta:
 
-👉 **[Contribuyentes y Asignación de Roles](CONTRIBUTORS.md)**
+👉 **[Contribuyentes y Asignación de Roles](./CONTRIBUTORS.md)**
 
 ## 📅 Timeline del Proyecto
-
-- **Marzo 2026**: Despliegue de red base, AD y primeras conexiones (JSBach/pfSense).
-- **Abril 2026**: Implementación del SOC, monitorización de logs, y gestión del incidente de DR por tormenta eléctrica.
-- **Mayo 2026**: Fases OSINT, ejecución de ataques dirigidos (Red Team), bastionado intensivo, y desarrollo forense automatizado.
+- **Marzo 2026**: Planificación y despliegue de red, instalación de servidores Windows Server 2016 y Ubuntu 22.04 (JSBach), creación del AD y configuración inicial de OUs y endpoints.
+- **Abril 2026**: Despliegue inicial de firewalls de frontera (pfSense) y túneles VPN. Instalación del SOC (Wazuh, Suricata y VirusTotal) y aplicación de GPOs en el AD. Se aplicó bastionado de tráfico inter-VLAN, 2FA en los servidores críticos e implementación de monitorización de logs. Gestión del incidente de DR por tormenta eléctrica e inicio de la recopilación OSINT.
+- **Mayo 2026**: Finalización fase OSINT, ejecución de ataques dirigidos (Red Team), bastionado intensivo, desarrollo forense automatizado y generación de documentación legal simulada.
 
 ---
 *Este proyecto fue desarrollado íntegramente en un entorno de laboratorio controlado para fines académicos y educativos.*

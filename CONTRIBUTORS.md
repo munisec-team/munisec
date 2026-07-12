@@ -1,15 +1,14 @@
-﻿# 👥 Contribuyentes y Roles
-
+# 👥 Contribuyentes y Roles
 Este repositorio refleja el trabajo de un equipo de especialistas en ciberseguridad. A continuación se detalla la contribución y especialización de cada miembro a lo largo del ciclo de vida del proyecto.
 
 ## 🏅 Miembros del Equipo
 
-### Jose Luis Oliver (Jolu)
-**Rol Principal**: Coordinador Técnico, Especialista en Redes VPN y Pentester
-* **Infraestructura**: Despliegue de VPNs (WireGuard) entre sedes, configuración WAN temporal, reorganización topológica.
-* **Red Team**: Ejecución de ataques contra el JSBach, escalada de privilegios y persistencia.
-* **Blue Team**: Configuración de reglas iptables, hardening de Apache (ModSecurity), logging centralizado de JSBach al SOC.
-* **Gestión**: Coordinación general del equipo, reestructuración tras caídas de servicio (DR).
+### Jose Luis Oliver Herranz (Joselu/Jolu)
+**Rol Principal**: Coordinador Técnico, Arquitecto de Red & VPN, Pentester (Red Team).
+* **Arquitectura Infraestructura**: Diseño, planificación y despliegue inicial de la topología de red. Implementación de túneles VPN (WireGuard) inter-sedes. Reingeniería y rediseño dinámico de la topología para asegurar la conectividad y alta disponibilidad de los servicios críticos bajo presión.
+* **Red Team**: Ejecución de vectores de ataque contra dispositivos de frontera (routers JSBach). Diseño de tácticas de intrusión y movimiento lateral hacia infraestructuras adyacentes, logrando con éxito la escalada de privilegios y el establecimiento de persistencia.
+* **Blue Team / Hardening**: Despliegue de políticas estrictas de filtrado de paquetes (`iptables`), bastionado de servicios web mediante WAF (Apache ModSecurity), y centralización de la telemetría configurando el *log forwarding* de los equipos de red al SIEM (SOC).
+* **Gestión y Liderazgo**: Liderazgo técnico del equipo, coordinación de tareas, *troubleshooting* avanzado (resolución de bloqueos técnicos del resto de miembros) y orquestación de la respuesta ante caídas masivas de servicio.
 
 ### Carlos Delgado
 **Rol Principal**: Especialista OSINT y Analista Forense
