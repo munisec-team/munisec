@@ -1,4 +1,4 @@
-# 11. Bitácora de Operaciones (Timeline)
+# 10. Bitácora de Operaciones (Timeline)
 
 Este documento es un resumen cronológico estructurado de la bitácora operativa original, que contiene más de 260 entradas detallando el progreso diario del equipo.
 

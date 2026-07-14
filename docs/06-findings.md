@@ -1,4 +1,4 @@
-# 07. Hallazgos y Vulnerabilidades (Findings)
+# 06. Hallazgos y Vulnerabilidades (Findings)
 
 > **Participantes**: Red Team (Carlos Delgado, Pau Roig, Jose Luis Oliver)
 > **Periodo**: Mayo 2026
