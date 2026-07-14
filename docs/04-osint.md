@@ -1,4 +1,4 @@
-﻿# 05. OSINT e Inteligencia de Fuentes Abiertas
+# 04. OSINT e Inteligencia de Fuentes Abiertas
 
 > **Participantes**: Carlos Delgado, Pau Roig, Jorge Cortés
 > **Periodo**: Abril 2026 - Mayo 2026
@@ -6,6 +6,19 @@
 ## Descripción General
 
 La fase de inteligencia (OSINT - *Open Source Intelligence*) fue el primer paso crítico tanto para la defensa (evaluar la exposición propia) como para el ataque (obtener información del equipo rival, el Ayuntamiento de Benimerda). 
+
+## 👥 Personajes Ficticios
+
+Parte del realismo del proyecto involucraba la asignación de personajes y perfiles ficticios a correos corporativos reales. Estos perfiles debían ser investigados por el equipo rival.
+
+| Cargo | Personaje | Asignado a |
+| ------- | ----------- | --------- |
+| **Alcalde** | Baltasar Cañete Huertas | Carlos Delgado |
+| **Concejala** | Rocío Mesa Jiménez | Pau Roig |
+| **Biblioteca** | Dolores Expósito | Enrique Cebrián |
+| **Representante Casa Cultura** | Fermín Valverde | Alfonso Garrido |
+| **Funcionario e Informático** | Isidoro Quesada | Jose Luis Oliver |
+| **Otros Funcionarios** | Trinidad Molina<br>Cristóbal Lorite<br>Valvanera Pinilla | Luis Fuster<br>Jorge Cortés<br>Marcos Bori |
 
 ## Metodología
 
@@ -28,5 +41,5 @@ Carlos Delgado lideró una auditoría de la propia huella digital del Ayuntamien
 
 Se generaron informes formales detallando los hallazgos y proponiendo medidas de mitigación (concienciación de usuarios, políticas de contraseñas robustas). 
 
-*Por razones de confidencialidad y respeto a la privacidad de los ejercicios del equipo rival, los informes PDF originales (que contienen nombres de alumnos) no se muestran públicamente, pero obran en poder del equipo para su consulta en entrevistas.*
+*Por razones de confidencialidad y respeto a la privacidad de los ejercicios del equipo rival, los informes PDF originales (que contienen nombres de alumnos y contraseñas reales) no se muestran públicamente, pero obran en poder del equipo para su consulta en entrevistas.*
 
