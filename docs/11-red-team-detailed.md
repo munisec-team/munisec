@@ -1,4 +1,4 @@
-# 12. Informe Operacional Red Team (Bitácora Detallada)
+# 11. Informe Operacional Red Team (Bitácora Detallada)
 
 > **Participantes**: Carlos Delgado, Pau Roig, Jose Luis Oliver
 > **Periodo**: 19 - 21 de Mayo 2026

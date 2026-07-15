@@ -1,4 +1,4 @@
-# 13. Checklist de Seguridad - GPOs (Directivas de Grupo)
+# 12. Checklist de Seguridad - GPOs (Directivas de Grupo)
 
 > **Participantes**: Luis Fuster, Kike
 > **Periodo**: Mayo 2026
