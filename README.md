@@ -59,20 +59,20 @@ Después de eliminar los pfSense, la distribución final de la red quedó de la 
 Toda la documentación técnica se encuentra en la carpeta [`/docs`](./docs/).
 
 ### 🌐 Infraestructura y Redes
-- [01. Arquitectura de Red](./docs/01-network-architecture.md) - Topología en detalle, VLANs, y routers (JSBach, pfSense).
-- [02. Infraestructura y Servicios](./docs/02-infrastructure.md) - Active Directory, Odoo, DMZ.
-- [03. SOC y SIEM](./docs/03-soc-siem.md) - Wazuh, Suricata, integración de alertas y VirusTotal.
+- [00. Arquitectura de Red](./docs/00-network-architecture.md) - Topología en detalle, VLANs, y routers (JSBach, pfSense).
+- [01. Infraestructura y Servicios](./docs/01-infrastructure.md) - Active Directory, Odoo, DMZ.
+- [02. SOC y SIEM](./docs/02-soc-siem.md) - Wazuh, Suricata, integración de alertas y VirusTotal.
 
 ### 🛡️ Blue Team & Defensa
-- [04. Bastionado (Hardening)](./docs/04-hardening.md) - Aseguramiento de servidores, 2FA, iptables.
-- [08. Respuesta a Incidentes](./docs/08-blue-team.md) - Gestión del desastre eléctrico y restauración.
-- [09. Análisis Forense](./docs/09-forensics.md) - Metodología forense, volcado de memoria, scripts de automatización.
-- [10. Cumplimiento Legal (ENS/RGPD)](./docs/10-compliance.md) - Adecuación al Esquema Nacional de Seguridad.
+- [03. Bastionado (Hardening)](./docs/03-hardening.md) - Aseguramiento de servidores, 2FA, iptables.
+- [07. Respuesta a Incidentes](./docs/07-blue-team.md) - Gestión del desastre eléctrico y restauración.
+- [08. Análisis Forense](./docs/08-forensics.md) - Metodología forense, volcado de memoria, scripts de automatización.
+- [09. Cumplimiento Legal (ENS/RGPD)](./docs/09-compliance.md) - Adecuación al Esquema Nacional de Seguridad.
 
 ### ⚔️ Red Team & Ataque
-- [05. Inteligencia de Fuentes Abiertas (OSINT)](./docs/05-osint.md) - Metodología de reconocimiento de perfiles gubernamentales del equipo de **Benimerda**.
-- [06. Operaciones Red Team](./docs/06-red-team.md) - Informe completo de intrusión, desde el acceso inicial hasta la escalada a `root`.
-- [07. Vulnerabilidades Identificadas](./docs/07-findings.md) - Matriz de hallazgos críticos.
+- [04. Inteligencia de Fuentes Abiertas (OSINT)](./docs/04-osint.md) - Metodología de reconocimiento de perfiles gubernamentales del equipo de **Benimerda**.
+- [05. Operaciones Red Team](./docs/05-red-team.md) - Informe completo de intrusión, desde el acceso inicial hasta la escalada a `root`.
+- [06. Vulnerabilidades Identificadas](./docs/06-findings.md) - Matriz de hallazgos críticos.
 
 ## 👥 El Equipo
 Este proyecto fue desarrollado por un grupo de 8 técnicos de ciberseguridad. Para consultar la aportación detallada de cada integrante a la infraestructura, pentesting, desarrollo de scripts y documentación, consulta:
