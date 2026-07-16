@@ -17,7 +17,7 @@ Este repositorio refleja el trabajo de un equipo de especialistas en ciberseguri
 * **Forense**: Desarrollo de scripts automatizados para la extracción y análisis de memoria/logs.
 * **Red Team**: Ejecución de fases de reconocimiento activo y vector de entrada.
 
-### Kike
+### Quique
 **Rol Principal**: Arquitecto de Seguridad y Respuesta a Incidentes
 * **SOC**: Despliegue de Wazuh-Agent, integraciones y configuración de reglas.
 * **Automatización**: Desarrollo del bot de Telegram para alertas tempranas de cambios de estado de servicios.
