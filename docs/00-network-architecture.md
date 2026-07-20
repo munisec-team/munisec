@@ -1,6 +1,6 @@
 # 00. Arquitectura de Red y Topología
 
-> [**Participantes y Contribuciones**](créditos-y-responsables-de-red)<br>
+> [**Participantes y Contribuciones**](#créditos-y-responsables-de-red)<br>
 > **Periodo**: Marzo 2026 - Mayo 2026
 
 ## Descripción General
@@ -55,13 +55,19 @@ La red interna (`10.2.0.0/16`) es distribuida por el JSBach local y se segmenta 
 
 ## 🔐 Enlace Seguro: Evolución de la VPN
 
-### Fase 1: VPN sobre pfSense
-Inicialmente, se estableció un túnel VPN IPSec/WireGuard entre los dos dispositivos pfSense de frontera para conectar las redes `10.1.0.0/16` y `10.2.0.0/16`.
+### Fase 1: Arquitectura Inicial (VPN sobre pfSense)
+![Arquitectura de Red Pre-incidente](../assets/diagrams/network-topology-0.jpeg)
+
+Inicialmente, la red dependía de los firewalls pfSense como único punto de entrada, estableciendo dos túneles VPN estratégicos:
+- **Túnel Site-to-Site (WireGuard):** Conectaba las redes `10.1.0.0/16` y `10.2.0.0/16`. El objetivo principal era permitir que el SOC auditase los equipos de la Casa de la Cultura y que dichos equipos pudieran unirse al dominio (Active Directory) gestionado desde el Ayuntamiento.
+- **Túnel de Teletrabajo:** Se implementó exclusivamente en el Ayuntamiento. Gracias a las tablas de enrutamiento existentes entre sedes, no fue necesario configurar un tercer túnel; los teletrabajadores obtenían acceso transparente a ambas infraestructuras conectándose al conectarse por VPN a la sede.
 
 ### Fase 2: Contingencia y Rediseño (VPN sobre JSBach)
-Tras un incidente de sobretensión ("tormenta eléctrica") que dañó los equipos pfSense, el equipo de red tomó la decisión arquitectónica de eliminar la capa de pfSense y exponer directamente los routers Linux (JSBach) a Internet. 
+Tras un incidente de sobretensión ("tormenta eléctrica") que dejó los equipos pfSense inutilizables, el equipo de red tomó la decisión arquitectónica de ejecutar un rediseño de emergencia, eliminando la capa de pfSense y exponiendo directamente los routers Linux internos ([JSBach](../software/jsbach/)) a Internet. 
 
-Se procedió a configurar un nuevo túnel VPN directamente entre los dos JSBach.
+![Arquitectura de Red Post-incidente](../assets/diagrams/network-topology-1.jpeg)
+
+Se procedió a configurar los túneles VPN directamente entre los dos JSBach.
 
 ```bash
 # Ejemplo conceptual del enrutamiento de contingencia implementado
