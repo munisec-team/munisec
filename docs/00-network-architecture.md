@@ -16,7 +16,9 @@ La red está segmentada físicamente en dos ubicaciones, conectadas de forma seg
 
 ### 🏢 Ayuntamiento (Sede Principal)
 
-El tráfico de entrada desde Internet se gestiona a través de un firewall **pfSense** (IP pública: `172.29.230.160`), que a su vez enruta hacia el router de distribución interno basado en Linux, denominado **JSBach**. 
+El tráfico de entrada desde Internet se gestiona a través de un firewall **pfSense** (IP pública: `172.29.230.160`), que a su vez enruta hacia el router de distribución interno, una solución a medida basada en Linux denominada **[JSBach](../software/jsbach/)**. 
+
+> 💡 **Nota Técnica**: Este software propio se diseñó desde el inicio del proyecto como el orquestador principal de la red, encargándose de la creación de las VLANs, la asignación DHCP, el portal cautivo y el filtrado del cortafuegos interno. Para consultar su código y automatizaciones, visita la **[Documentación de JSBach](../software/jsbach/README.md)**.
 
 Es este enrutador JSBach el encargado de gestionar y distribuir la red interna (`10.1.0.0/16`) hacia las siguientes VLANs, utilizando switches TP-Link. Todas las IPs internas de esta sede pertenecen a la subred `10.1.x.x`.
 
