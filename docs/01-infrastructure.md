@@ -1,11 +1,11 @@
 # 01. Infraestructura Central y Servicios
 
-> **Participantes**: [Equipo de Infraestructura y Despliegue](#créditos-y-responsables-de-infraestructura)<br>
+> 👉 Para consultar el desglose exacto de tareas técnicas realizadas por cada miembro, revisa el **[Registro de Contribuyentes](../CONTRIBUTORS.md)**.<br>
 > **Periodo**: Marzo 2026 - Abril 2026
 
 ## Descripción General
 
-La infraestructura de servidores base provee los servicios críticos del ayuntamiento: gestión de identidades centralizada (Active Directory), servicios web públicos (DMZ) e internos, y el sistema de planificación de recursos empresariales (ERP). Estos sistemas fueron desplegados mayoritariamente sobre ecosistemas híbridos (Windows Server 2016 y distribuciones GNU/Linux Ubuntu).
+La infraestructura de servidores base provee los servicios críticos del ayuntamiento: gestión de identidades centralizada, servicios web públicos e internos, y el sistema de planificación de recursos empresariales (ERP). Estos sistemas fueron desplegados mayoritariamente sobre ecosistemas híbridos (Windows Server 2016 y distribuciones GNU/Linux Ubuntu).
 
 ## Componentes Críticos
 
@@ -31,37 +31,11 @@ La Zona Desmilitarizada (VLAN 2) aloja los servicios web accesibles desde el ext
 
 * **Servidor Web Principal**: Servidor Ubuntu Linux corriendo Apache HTTP Server.
 * **CMS Público (WordPress)**: Despliegue de un portal institucional para el Ayuntamiento. 
-* **Seguridad y Hardening**: Inicialmente se detectaron problemas de seguridad (como paneles phpMyAdmin expuestos), lo cual fue remediado instalando y configurando plugins de seguridad específicos dentro del entorno de WordPress para blindar el acceso.
+* **Diseño de Escenario (Vulnerable by Design)**: Con el objetivo de simular un entorno realista para las pruebas del Red Team, **se expuso intencionadamente un panel de phpMyAdmin**. Adicionalmente, se plantó una tabla señuelo (`wp_pass`) que contenía las contraseñas de los usuarios en texto plano. Esta "negligencia simulada" sirvió como vector de entrada clave para que el equipo rival lograse comprometer la infraestructura inicial y simular una exfiltración de credenciales. *(La explotación y el impacto de este vector se detallan en el documento **[05. Operaciones Red Team](05-red-team.md)**).*
+* **Seguridad y Hardening posterior**: Tras el compromiso, los fallos intencionados fueron remediados mediante el bastionado de los accesos y la instalación de plugins de seguridad específicos en el entorno de WordPress.
 
 ### 🏢 ERP / Gestión Interna
 
 * **Plataforma**: Odoo (Open Source ERP).
 * **Ubicación**: Servidor Linux en la VLAN 3 (Servidores Internos).
 * **Propósito**: Simular la gestión interna municipal y servir como servicio corporativo de alto valor. Especialmente relevante fue la implementación del **módulo de Empleados**, el cual se nutrió con las identidades ficticias de los personajes asignados a la simulación (tales como el Alcalde o los bibliotecarios, cuyas fichas y roles se detallan en el documento de **[Inteligencia y OSINT](04-osint.md)**).
-
-## Créditos y Responsables de Infraestructura
-
-Basado en los registros extraídos de la bitácora técnica del proyecto, a continuación se detallan las responsabilidades específicas de cada miembro en la construcción de estos servicios:
-
-### ⚙️ Marcos (Implementación AD Core)
-- Instalación base de Windows Server 2016 y levantamiento del bosque inicial de Active Directory.
-- Creación de los grupos principales (`FUNCIONARIOS`, `ADMINISTRACION`) y sus recursos compartidos.
-- Ejecución de las tareas de limpieza y reestructuración del AD, eliminando configuraciones innecesarias y ordenando los permisos departamentales de la Casa de la Cultura y el Ayuntamiento.
-
-### 🛡️ Enrique Cebrián (Kike) (Organización y Servicios)
-- Liderazgo en la instalación y puesta en marcha del ERP **Odoo** en la red interna.
-- Co-diseño estratégico de la estructura organizativa (OUs) del dominio para adaptarse a las necesidades de la simulación.
-- Aplicación y configuración de las Directivas de Grupo (GPOs) junto a Luis y Jorge.
-
-### 🌐 Pau Roig (Despliegue Web)
-- Provisión e instalación de la máquina Ubuntu destinada a la DMZ.
-- Despliegue del portal institucional en **WordPress**.
-- Implementación de plugins de seguridad en WordPress para mitigar las vulnerabilidades de configuración iniciales.
-
-### 🛠️ Carlos Delgado y Jorge Cortés (Endpoints y GPOs)
-- **Carlos Delgado:** Responsable de integrar y añadir múltiples equipos cliente (ej. PC-13, PC-25, PC-29) al dominio `guarroman.local`, asegurando la conectividad DNS hacia el AD.
-- **Jorge Cortés:** Colaboración directa en la adición de equipos al dominio y en la toma de decisiones para aplicar las directivas de seguridad (GPOs) del fichero de bastionado recomendado.
-
-### 💻 Luis Fuster (Sistemas Cliente y GPOs)
-- Despliegue e instalación masiva de los sistemas operativos de los equipos cliente (Windows) utilizando herramientas automatizadas (Ventoy).
-- Participación activa en el diseño, debate y aplicación de las políticas de seguridad (GPOs) de Active Directory en el dominio, junto al equipo.

@@ -1,31 +1,56 @@
 # 03. Bastionado y Defensa en Profundidad (Hardening)
 
-> **Participantes**: Kike, Alfonso, Jose Luis, Luis Fuster
+> üëâ Para consultar el desglose exacto de tareas t√©cnicas realizadas por cada miembro, revisa el **[Registro de Contribuyentes](../CONTRIBUTORS.md)**.<br>
 > **Periodo**: Mayo 2026
 
-## DescripciÛn General
+## Descripci√≥n General
 
-Tras la evaluaciÛn de la postura de seguridad y el an·lisis de los ataques ejecutados por el Red Team, el equipo implementÛ una estrategia de defensa en profundidad. El objetivo fue reducir la superficie de ataque, restringir el movimiento lateral y proteger la integridad de los datos, siguiendo las directrices del Esquema Nacional de Seguridad (ENS).
+Tras la evaluaci√≥n de la postura de seguridad y el an√°lisis de los ataques ejecutados por el Red Team, el equipo implement√≥ una estrategia de defensa en profundidad. El objetivo fue reducir la superficie de ataque, restringir el movimiento lateral y proteger la integridad de los datos, siguiendo las directrices del Esquema Nacional de Seguridad (ENS).
 
 ## Medidas Implementadas
 
-### ?? Control de Acceso y Red
+### üõ°Ô∏è Control de Acceso y Red
 
-*   **AutenticaciÛn Fuerte (2FA)**: Se implementÛ un Doble Factor de AutenticaciÛn mediante tokens USB hardware para el acceso a sistemas crÌticos, previniendo ataques de fuerza bruta o robo de credenciales.
-*   **SegmentaciÛn de Red y Firewalls Locales (iptables)**: Se configuraron reglas estrictas de `iptables` en el router JSBach y en los servidores.
-    *   *Deny by default*: Bloqueo total del tr·fico inter-VLAN, permitiendo solo puertos especÌficos (ej. 80/443 hacia la DMZ, 53 hacia el DNS del AD).
-    *   *RestricciÛn de GestiÛn*: Acceso SSH y HTTP(S) a los paneles de gestiÛn (Switches, pfSense, JSBach) restringido exclusivamente a la IP del administrador en la VLAN 1.
+*   **Autenticaci√≥n Fuerte (2FA)**: Se implement√≥ un Doble Factor de Autenticaci√≥n mediante tokens USB hardware para el acceso a sistemas cr√≠ticos, previniendo ataques de fuerza bruta o robo de credenciales.
+*   **Segmentaci√≥n de Red y Firewalls Locales (iptables)**: Se configuraron reglas estrictas de `iptables` en el router JSBach y en los servidores.
+    *   *Deny by default*: Bloqueo total del tr√°fico inter-VLAN, permitiendo solo puertos espec√≠ficos (ej. 80/443 hacia la DMZ, 53 hacia el DNS del AD).
+    *   *Restricci√≥n de Gesti√≥n*: Acceso SSH y HTTP(S) a los paneles de gesti√≥n (Switches, pfSense, JSBach) restringido exclusivamente a la IP del administrador en la VLAN 1.
 
-### ?? SecurizaciÛn de Servicios Web
+### üåê Securizaci√≥n de Servicios Web
 
-El servidor Apache que alojaba WordPress y phpMyAdmin en la DMZ fue objeto de un bastionado severo por parte de Alfonso:
+El servidor Apache que alojaba WordPress y phpMyAdmin en la DMZ fue objeto de un bastionado severo por parte de Alfonso tras detectar el uso del escenario vulnerable por parte del equipo rival:
 
-*   **OfuscaciÛn de Banners**: ModificaciÛn de las cabeceras HTTP (`ServerSignature Off`, `ServerTokens Prod`) para evitar la enumeraciÛn de versiones del servidor web y del sistema operativo.
-*   **ModSecurity (WAF)**: ImplementaciÛn del *Web Application Firewall* ModSecurity en Apache, con el conjunto de reglas OWASP Core Rule Set (CRS) para bloquear ataques de inyecciÛn SQL (SQLi), Cross-Site Scripting (XSS) e inclusiones de archivos locales (LFI/RFI).
-*   **Cifrado en Tr·nsito**: Despliegue de certificados TLS/SSL forzando HTTPS en todas las comunicaciones web internas y externas.
+*   **Ofuscaci√≥n de Banners**: Modificaci√≥n de las cabeceras HTTP (`ServerSignature Off`, `ServerTokens Prod`) para evitar la enumeraci√≥n de versiones del servidor web y del sistema operativo.
+*   **ModSecurity (WAF)**: Implementaci√≥n del *Web Application Firewall* ModSecurity en Apache, con el conjunto de reglas OWASP Core Rule Set (CRS) para bloquear ataques de inyecci√≥n SQL (SQLi), Cross-Site Scripting (XSS) e inclusiones de archivos locales (LFI/RFI).
+*   **Cifrado en Tr√°nsito**: Despliegue de certificados TLS/SSL forzando HTTPS en todas las comunicaciones web internas y externas.
 
-### ??? Endpoint y Datos
+### üíª Endpoint, Datos y GPOs
 
-*   **Directivas de Grupo (GPOs)**: Luis y Kike aplicaron polÌticas desde el AD para deshabilitar puertos USB (previniendo exfiltraciÛn de datos o ataques *BadUSB*), forzar el bloqueo autom·tico de pantallas, y restringir la ejecuciÛn de scripts de PowerShell no firmados.
-*   **Cifrado de Datos en Reposo**: ImplementaciÛn de **gocryptfs** en los servidores Ubuntu crÌticos para cifrar directorios sensibles, protegiendo la informaciÛn en caso de acceso fÌsico no autorizado al almacenamiento.
+*   **Cifrado de Datos en Reposo**: Implementaci√≥n de **gocryptfs** en los servidores Ubuntu cr√≠ticos para cifrar directorios sensibles, protegiendo la informaci√≥n en caso de acceso f√≠sico no autorizado al almacenamiento.
+*   **Pol√≠ticas de Active Directory**: Luis y Kike aplicaron pol√≠ticas globales (GPOs) desde el AD para asegurar los endpoints del dominio. A continuaci√≥n se detalla el checklist de pol√≠ticas aplicadas:
 
+#### üìú Checklist de Directivas de Grupo (GPOs)
+
+**Firewall y Protocolos Inseguros**
+- [x] Firewall de Windows activo en todos los equipos del dominio.
+- [ ] *Auditor√≠a*: Verificar que los equipos de Benimerda no tengan el firewall desactivado (posible entrada de ataque).
+- [x] **SMBv1 desactivado** en todos los equipos.
+- [ ] *Auditor√≠a*: Verificar que los equipos de Benimerda tengan SMBv1 desactivado.
+
+**Pol√≠tica de Contrase√±as**
+- [x] Longitud m√≠nima: **12 caracteres**.
+- [x] M√°ximo de **5 intentos** de inicio de sesi√≥n antes de bloqueo.
+
+**Ejecuci√≥n de Scripts**
+- [x] Activada ejecuci√≥n de scripts en modo seguro.
+- [x] Solo se permiten **scripts firmados** (no se pueden ejecutar scripts no cifrados/sin firmar).
+
+**Control de Dispositivos Extra√≠bles (USB)**
+- [x] Bloqueada escritura, lectura y ejecuci√≥n desde pendrives en equipos del Ayuntamiento (previniendo exfiltraci√≥n de datos o ataques *BadUSB*).
+- [ ] **Pendiente**: aplicar en equipos de Casa de la Cultura y PCs restantes del dominio.
+- [x] **Desactivada** reproducci√≥n autom√°tica (Autorun) de dispositivos.
+- [x] En caso de conectar un dispositivo USB, no se podr√° acceder sin activaci√≥n manual.
+
+**Control de Cuentas de Usuario (UAC)**
+- [x] Opciones de seguridad configuradas para requerir permisos de administrador.
+- [x] Control de cuentas de usuario activado y estricto.
