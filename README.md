@@ -31,29 +31,15 @@ El objetivo final fue diseñar, comprometer, recuperar y securizar completamente
 
 ## 🏗️ Arquitectura de Red
 
-![Arquitectura de Red Pre-incidente](./assets/diagrams/network-topology-0.jpeg)
+El proyecto simuló una infraestructura corporativa real distribuida en dos ubicaciones geográficas físicas:
+- **Ayuntamiento (Sede Principal):** Aloja los servicios críticos como el Active Directory, ERP, el SOC (SIEM/IDS) y redes de trabajo internas.
+- **Casa de la Cultura (Sede Secundaria):** Actúa como delegación periférica, con redes de acceso público y equipos de consulta.
 
-La topología de red del equipo de Guarroman se dividía en dos sedes físicas conectadas mediante un túnel VPN:
+Ambas sedes fueron interconectadas mediante túneles **VPN (WireGuard)** para garantizar el enrutamiento seguro y simular escenarios de teletrabajo. Durante la simulación, la infraestructura sufrió un "desastre eléctrico" que obligó al equipo a ejecutar protocolos de contingencia y rediseñar la topología de redención en vivo, migrando de pfSense a routers Linux (JSBach).
 
-- **Ayuntamiento**: Sede principal que estaba compuesta por una DMZ, un Domain Controller (AD), un ERP (Odoo), un SIEM (Wazuh), varios equipos cliente para poder hacer pruebas contra el AD y el SIEM, y una red WiFi para uso exclusivo de los trabajadores.
+![Arquitectura de Red Definitiva](./assets/diagrams/network-topology-1.jpeg)
 
-- **Casa de la Cultura (CC)**: Sede secundaria, compuesta por una DMZ, varios equipos clientes que eran de uso público (simulando algo parecido al funcionamiento de una biblioteca) y una red WiFi también pública para cualquiera.
-
-Ambas sedes tenían su propia salida a Internet de forma independiente, cada una con su propio router pfSense.
-
-Posteriormente, se configuraron 2 túneles VPN:
-- El primero sirvió para conectar ambos routers (pfSense) a través de una VPN **Wireguard**, lo que permitiría al **SOC** acceder a los equipos cliente de la **Casa de la Cultura**, así como permitiría a estos mismos equipos cliente unirse al AD para poder ser administrados desde ahí.
-
-- El segundo se abrió para simular la necesidad de una empresa por querer ofrecer una modalidad de teletrabajo a sus trabajadores, permitiéndoles conectarse a la red empresarial sin necesidad de estar físicamente en el lugar.
-
-Este segundo túnel se implementó **exclusivamente** en el Ayto dado que el router (pfSense del Ayto) ya se encontraba comunicado con la CC a través de VPN, por lo que no era necesario configurar un tercer túnel para este mismo propósito. Los teletrabajadores tendrían acceso a ambas sedes sin necesidad de configuración adicional.
-
-**Incidente de Recuperación ante Desastres:**
-Las VPNs se configuraron inicialmente en los pfSense, pero tras un fallo eléctrico (simulado) que dejó a los dispositivos inutilizables, se ejecutó un rediseño de emergencia y se redesplegaron ambos túneles directamente en los routers Linux internos mediante [JSBach](./software/jsbach/).
-
-Después de eliminar los pfSense, la distribución final de la red quedó de la siguiente manera:
-
-![Arquitectura de Red Post-incidente](./assets/diagrams/network-topology-1.jpeg)
+👉 **[Ver topología completa, subredes, VLANs y configuración técnica](./docs/00-network-architecture.md)**
 
 ## 📂 Estructura del Repositorio
 Toda la documentación técnica se encuentra en la carpeta [`/docs`](./docs/).
