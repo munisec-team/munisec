@@ -1,0 +1,42 @@
+﻿
+alert tcp any any -> $HOME_NET any (msg:"TCP SYN scan (high confidence)"; flags:S; flow:stateless; detection_filter:track by_src, count 30, seconds 3; sid:1200001; rev:1;)
+
+alert tcp any any -> $HOME_NET any (msg:"TCP FIN scan"; flags:F; flow:stateless; detection_filter:track by_src, count 20, seconds 3; sid:1200002; rev:1;)
+
+alert tcp any any -> $HOME_NET any (msg:"TCP NULL/XMAS scan"; flags:0; flow:stateless; detection_filter:track by_src, count 20, seconds 3; sid:1200003; rev:1;)
+
+alert udp any any -> $HOME_NET any (msg:"UDP scan activity"; detection_filter:track by_src, count 30, seconds 5; sid:1200004; rev:1;)
+
+alert icmp any any -> $HOME_NET any (msg:"ICMP sweep"; itype:8; detection_filter:track by_src, count 15, seconds 3; sid:1200005; rev:1;)
+
+alert tcp $HOME_NET any -> $HOME_NET any (msg:"Internal port scan (lateral movement)"; flags:S; flow:stateless; detection_filter:track by_src, count 40, seconds 5; sid:1200006; rev:1;)
+
+alert http any any -> $HOME_NET any (msg:"Web brute force behavior"; flow:established,to_server; detection_filter:track by_src, count 60, seconds 10; sid:1200007; rev:1;)
+
+alert http any any -> $HOME_NET any (msg:"Sensitive endpoint /admin"; flow:established,to_server; http.uri; content:"/admin"; nocase; detection_filter:track by_src, count 10, seconds 30; sid:1200008; rev:1;)
+
+alert http any any -> $HOME_NET any (msg:"Sensitive endpoint /backup"; flow:established,to_server; http.uri; content:"/backup"; nocase; detection_filter:track by_src, count 10, seconds 30; sid:1200009; rev:1;)
+
+alert http any any -> $HOME_NET any (msg:"Sensitive file exposure"; flow:established,to_server; http.uri; pcre:"/\.(env|bak|sql|zip|tar|gz|log|ini|conf|db)$/i"; sid:1200010; rev:1;)
+
+alert http any any -> $EXTERNAL_NET any (msg:"CLI tool UA (curl/wget)"; flow:established,to_server; http.user_agent; pcre:"/(curl|wget)/i"; detection_filter:track by_src, count 10, seconds 60; sid:1200011; rev:1;)
+
+alert http any any -> $EXTERNAL_NET any (msg:"Fuzzing tool UA (gobuster/ffuf)"; flow:established,to_server; http.user_agent; pcre:"/(gobuster|ffuf|feroxbuster|dirbuster)/i"; detection_filter:track by_src, count 5, seconds 60; sid:1200012; rev:1;)
+
+alert tcp any any -> any any (msg:"Reverse shell /dev/tcp"; flow:established,to_server; content:"/dev/tcp/"; detection_filter:track by_src, count 3, seconds 60; sid:1200013; rev:1;)
+
+alert tcp any any -> any any (msg:"Netcat activity"; flow:established,to_server; content:"nc "; detection_filter:track by_src, count 5, seconds 60; sid:1200014; rev:1;)
+
+alert tcp any any -> any any (msg:"Shell execution pattern"; flow:established,to_server; pcre:"/(bash\s+-i|/bin/sh)/i"; detection_filter:track by_src, count 3, seconds 60; sid:1200015; rev:1;)
+
+alert tcp any any -> $EXTERNAL_NET any (msg:"Possible beaconing (SYN pattern)"; flags:S; flow:stateless; detection_filter:track by_src, count 25, seconds 15; sid:1200016; rev:1;)
+
+alert udp any any -> any 53 (msg:"DNS tunneling suspected"; detection_filter:track by_src, count 60, seconds 10; sid:1200017; rev:1;)
+
+alert udp any any -> any 53 (msg:"Long DNS query anomaly"; dsize:>180; sid:1200018; rev:1;)
+
+alert tcp any any -> $HOME_NET 22 (msg:"SSH brute force"; detection_filter:track by_src, count 20, seconds 60; sid:1200019; rev:1;)
+
+alert tcp any any -> $HOME_NET 3389 (msg:"RDP brute force"; detection_filter:track by_src, count 25, seconds 60; sid:1200020; rev:1;)
+
+alert tcp any any -> $HOME_NET 445 (msg:"SMB brute force"; detection_filter:track by_src, count 25, seconds 60; sid:1200021; rev:1;)
