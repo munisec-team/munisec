@@ -26,11 +26,12 @@ A continuación se presenta un índice con los roles principales de cada miembro
 * **Arquitectura Infraestructura**: Diseño, planificación y despliegue inicial de la topología de red. Implementación y enrutamiento de túneles VPN (WireGuard) inter-sedes y teletrabajo.
 * **JSBach y Contingencia**: Desarrollo y ejecución de los scripts de recuperación de emergencia (`backupJSBACH.sh` y `restoreJSBACH.sh`) durante el desastre eléctrico, rediseñando dinámicamente la topología para garantizar alta disponibilidad. Orquestación del Portal Cautivo para el WiFi público de la biblioteca.
 * **Red Team**: Ejecución de vectores de ataque contra dispositivos de frontera (routers JSBach). Diseño de tácticas de intrusión y movimiento lateral hacia infraestructuras adyacentes, logrando con éxito la escalada de privilegios y el establecimiento de persistencia.
-* **Blue Team / Hardening**: Despliegue de políticas estrictas de filtrado de paquetes (`iptables`), bastionado de servicios web mediante WAF (Apache ModSecurity), y centralización de la telemetría configurando el *log forwarding* de los equipos de red al SIEM (SOC).
+* **Blue Team / Hardening**: Despliegue de políticas estrictas de filtrado de paquetes (`iptables`), bastionado de servicios web mediante WAF (Apache ModSecurity), y apoyo a Alfonso en la finalización de las funciones de logging e integración del módulo VPN en `jsbach-logger.sh`.
 
 ### Carlos Delgado
 **Rol Principal**: Especialista OSINT y Analista Forense
 * **Infraestructura y AD**: Gestión de switches y configuración inicial de VLANs. Responsable de la integración y adición de múltiples equipos cliente (ej. PC-13, PC-25, PC-29) al dominio corporativo `guarroman.local`, asegurando su conectividad DNS.
+* **SOC / Agentes**: Despliegue e instalación de agentes **Wazuh-Agent** en los equipos cliente de la red y configuración del servicio *Remote Log* (Syslog) en los switches TP-Link para enviar telemetría de conmutación al SIEM.
 * **OSINT**: Investigación exhaustiva de objetivos y recopilación de huella digital, auditando los perfiles ficticios para identificar fugas en brechas de datos de terceros.
 * **Forense**: Desarrollo de scripts automatizados para la extracción y análisis de memoria/logs.
 * **Red Team**: Ejecución de fases de reconocimiento activo y vector de entrada.
@@ -52,7 +53,7 @@ A continuación se presenta un índice con los roles principales de cada miembro
 
 ### Jorge Cortés
 **Rol Principal**: Analista SOC (Tier 2/3) y Forense Digital
-* **SOC / SIEM**: Configuración avanzada de Wazuh y Suricata. Integración con inteligencia de amenazas (VirusTotal). Corrección de falsos positivos en reglas de detección.
+* **SOC / SIEM**: Configuración avanzada de Wazuh y Suricata. Integración con inteligencia de amenazas (VirusTotal). Corrección de falsos positivos en reglas de detección y depuración de la ingesta de Syslog remoto proveniente de los switches TP-Link junto a Carlos, Pau y Joselu.
 * **Infraestructura**: Configuración física de red, cableado de switches, adición conjunta de endpoints al dominio y toma de decisiones para aplicar las directivas de seguridad (GPOs).
 * **Forense**: Creación de *dumps* de memoria y uso de Volatility para análisis de incidentes.
 * **Red Team**: Crackeo de contraseñas offline, fuerza bruta e inteligencia OSINT.
@@ -61,7 +62,7 @@ A continuación se presenta un índice con los roles principales de cada miembro
 **Rol Principal**: Analista de Redes Seguras y Forense
 * **Infraestructura**: Soporte activo en la configuración y troubleshooting de la VPN inter-sedes. Apoyo a Joselu en la configuración de accesos HTTP/HTTPS del Portal Cautivo.
 * **Hardening**: Bastionado intensivo de Apache (restricciones VLAN, ofuscación de versiones) y configuración HTTPS para todos los dispositivos de gestión.
-* **Blue Team**: Implementación del sistema de logging centralizado (JSBach a SOC) y soporte al equipo forense.
+* **Blue Team**: Investigación, diseño y creación del script de logging centralizado (`jsbach-logger.sh`) en JSBach para reenvío Syslog al SOC, y soporte al equipo forense.
 
 ### Luis Fuster
 **Rol Principal**: Técnico de Despliegue y Endpoint Security
@@ -74,4 +75,4 @@ A continuación se presenta un índice con los roles principales de cada miembro
 * **Implementación AD Core**: Responsable de la instalación base de Windows Server 2016 y levantamiento del bosque inicial de Active Directory. Configuración de DNS, DHCP y creación de los grupos principales (`FUNCIONARIOS`, `ADMINISTRACION`) junto con sus recursos compartidos.
 * **Mantenimiento**: Ejecución de tareas de limpieza y reestructuración del AD, eliminando configuraciones innecesarias para estabilizar el entorno.
 * **Infraestructura Física**: Despliegue del router JSBach en la Casa de la Cultura.
-* **SOC / Red**: Integración del manager de Wazuh e intento de restablecimiento de túneles VPN secundarios.
+* **SOC / Red**: Integración del manager de Wazuh, backup de normas y depuración/corrección de reglas de Wazuh y Suricata junto a Jorge, e intento de restablecimiento de túneles VPN secundarios.
