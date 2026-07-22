@@ -9,8 +9,10 @@ La arquitectura de red del proyecto está diseñada para simular una infraestruc
 
 ## Topología de Red Lógica
 
-![Arquitectura de Red](../assets/diagrams/network-topology-1.jpeg)
-*(Basado en el plano físico de diseño)*
+### 📐 Topología Inicial (Pre-Incidente)
+
+![Arquitectura de Red Pre-Incidente](../assets/diagrams/network-topology-0.jpeg)
+*(Plano de diseño inicial de la red)*
 
 La red está segmentada físicamente en dos ubicaciones, conectadas de forma segura a través de Internet público.
 
@@ -24,43 +26,51 @@ Es este enrutador JSBach el encargado de gestionar y distribuir la red interna (
 
 Ambas sedes tienen salida a Internet independiente, cada una con su propio router pfSense dedicado (con IPs "públicas" `172.29.230.160` y `.161` respectivamente).<br>
 
-A continuación, se conectaron ambos pfSense a través de una VPN **Wireguard** de tipo Site-to-Site en la subred `10.200.0.0/30`.<br>
+A continuación, se conectaron ambos pfSense a través de una VPN **WireGuard** de tipo Site-to-Site en la subred `10.200.0.0/30`.<br>
+También se abrió un túnel VPN adicional (`10.201.0.0/24`) para simular a los trabajadores que quisieran teletrabajar en remoto. Este túnel se implementó exclusivamente en el Ayuntamiento.<br><br>
 
 #### Distribución de VLANs (Ayuntamiento)
 
-| VLAN ID | Nombre | Rango IP | Propósito |
-| :---: | :--- | :--- | :--- |
-| **1** | Gestión | `10.1.10.0/24` | Acceso a las interfaces de administración (Switches, pfSense, JSBach). Solo accesible por la IP de gestión `10.1.10.10`. |
-| **2** | DMZ | `10.1.20.0/24` | Servicios expuestos al exterior (Portal Web institucional en WordPress y phpMyAdmin). Aislada de la red corporativa. |
-| **3** | Servidores Internos | `10.1.30.0/24` | Servicios Core: Active Directory/DNS (Windows Server) y ERP Odoo. |
-| **5** | Red Interna Corporativa | `10.1.50.0/24` | Equipos de trabajo de los empleados municipales (PC-13, PC-25, etc.) unidos al dominio. |
-| **6** | Red Ocio (WIFI) | `10.1.60.0/24` | Red WiFi aislada, sin acceso a servidores internos. |
+| VLAN | Subred | Propósito | Servicios / Equipos Críticos |
+|------|--------|-----------|-----------------------------|
+| **VLAN 1** | `10.1.1.0/24` | **Administración** | Gestión de red, switches, acceso privilegiado |
+| **VLAN 3** | `10.1.3.0/24` | **Servidores Internos** | Active Directory (AD), Servidor Odoo (ERP) |
+| **VLAN 4** | `10.1.4.0/24` | **SOC / Seguridad** | Servidor Wazuh Manager (`10.1.4.138`), Suricata NIDS |
+| **VLAN 5** | `10.1.5.0/24` | **Oficinas / Trabajo** | Endpoints de funcionarios (Trabajo interno) |
+| **VLAN 6** | `10.1.6.0/24` | **Oficinas / Trabajo** | Endpoints de funcionarios (Trabajo interno) |
+| **WiFi** | `10.1.99.0/24` | **Wi-Fi Trabajadores** | Red inalámbrica para empleados del Ayuntamiento |
 
 ### 📚 Casa de la Cultura (Sede Secundaria)
 
-Actúa como delegación. Su conexión a la red corporativa depende del túnel VPN principal hacia el Ayuntamiento. 
-IP Pública: `172.29.230.161` (gestionada por su pfSense local).
+Similar a la sede principal, el tráfico entra por un pfSense (IP pública: `172.29.230.161`), enrutado hacia el JSBach local. 
+
+La red interna (`10.2.0.0/16`) es distribuida por el JSBach local y se segmenta en:
 
 #### Distribución de VLANs (Casa de la Cultura)
 
-| VLAN ID | Nombre | Rango IP | Propósito |
-| :---: | :--- | :--- | :--- |
-| **11** | Gestión | `10.2.10.0/24` | Administración local de esta sede. |
-| **14** | Biblioteca | `10.2.40.0/24` | Equipos públicos de consulta de la biblioteca. |
-| **15** | Administración | `10.2.50.0/24` | Equipos corporativos de los empleados de la sede. |
-| **16** | WIFI Biblioteca | `10.2.60.0/24` | Red inalámbrica para visitantes (protegida por el portal cautivo de JSBach). |
-| **17** | SOC (Seguridad) | `10.2.70.0/24` | Infraestructura de monitorización defensiva (Wazuh SIEM y Suricata). Segmentada para evitar compromisos en cascada. |
+| VLAN | Subred | Propósito | Servicios / Equipos Críticos |
+|------|--------|-----------|-----------------------------|
+| **VLAN 1** | `10.2.1.0/24` | **Administración** | Gestión de switches locales |
+| **VLAN 2** | `10.2.2.0/24` | **DMZ / Sistemas** | Equipos de soporte, mantenimiento y servicios expuestos |
+| **VLAN 15**| `10.2.15.0/24`| **Biblioteca (Pública)** | Ordenadores de consulta pública |
+| **VLAN 16**| `10.2.16.0/24`| **Biblioteca (Pública)** | Ordenadores de consulta pública |
+| **WiFi** | `10.2.99.0/24` | **Wi-Fi Cultura** | Acceso inalámbrico público simulando la red de la biblioteca |
 
-## ⚠️ Rediseño de Contingencia (Disaster Recovery)
+> **Control de Acceso Inalámbrico**: Ambas redes Wi-Fi (Ayuntamiento y Casa de la Cultura) restringen el tráfico mediante la implementación de un **Portal Cautivo**, forzando la autenticación de los usuarios a través de un servidor web Apache antes de proporcionar conectividad hacia otras VLANs o Internet.
 
-Durante la fase de simulación, la infraestructura sufrió un desastre eléctrico ("Tormenta en Guarromán") que destruyó ambos firewalls pfSense, cortando el acceso a Internet y destruyendo los túneles VPN que unían las sedes.
+## 🔐 Enlace Seguro: Evolución de la VPN y Contingencia
 
-Debido a que el router Linux interno (**JSBach**) poseía un sistema modular de copias de seguridad de sus reglas de iptables y tablas de enrutamiento (ejecutado previamente por el equipo de forma preventiva), se procedió a un rediseño de emergencia:
+### Fase 1: VPN sobre pfSense
+Inicialmente, se estableció un túnel VPN IPSec/WireGuard entre los dos dispositivos pfSense de frontera para conectar las redes `10.1.0.0/16` y `10.2.0.0/16`.
 
-1. Se eliminó la capa pfSense.
-2. JSBach (Ayuntamiento) y JSBach (Casa de la Cultura) asumieron el rol de firewalls de frontera.
-3. Se levantaron nuevos túneles **WireGuard** directamente entre los routers JSBach.
-4. Se modificaron las tablas de enrutamiento para asegurar la continuidad del servicio (`10.1.0.0/16` ↔ `10.2.0.0/16`).
+### Fase 2: Contingencia y Rediseño (VPN sobre JSBach)
+
+![Arquitectura de Red Definitiva (Post-Incidente)](../assets/diagrams/network-topology-1.jpeg)
+*(Topología definitiva tras la caída de pfSense)*
+
+Tras un incidente de sobretensión ("tormenta eléctrica") que dañó los equipos pfSense, el equipo de red tomó la decisión arquitectónica de eliminar la capa de pfSense y exponer directamente los routers Linux (JSBach) a Internet. 
+
+Se procedió a configurar el nuevo túnel VPN directamente entre los dos JSBach.
 
 ```bash
 # Ejemplo conceptual del enrutamiento de contingencia implementado
