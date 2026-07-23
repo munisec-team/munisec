@@ -28,7 +28,7 @@ La eficacia del SIEM dependió directamente del alcance y la granularidad de las
   - **Event ID 13**: Modificaciones en claves críticas del Registro de Windows (`HKLM\Software\Microsoft\Windows\CurrentVersion\Run`).
 
 ### 3. Log Forwarding Centralizado desde JSBach
-- **Script Global de Log**: Alfonso Garrido diseñó e implementó el script **[`jsbach-logger.sh`](../software/jsbach/jsbach-logger.sh)** para estandarizar el registro de eventos del router Linux. Jose Luis Oliver colaboró en la integración del logging en los módulos de VPN WireGuard (`vpn_wg`) y scripts de backup.
+- **Script Global de Log**: Alfonso Garrido diseñó e implementó el script **[jsbach-logger.sh](../software/jsbach/jsbach-logger.sh)** para estandarizar el registro de eventos del router Linux. Jose Luis Oliver colaboró en la integración del logging en los módulos de VPN WireGuard (`vpn_wg`) y scripts de backup.
 
 ```bash
 # Muestra de jsbach-logger.sh:
@@ -43,7 +43,7 @@ log_action() {
 }
 ```
 
-- **Reenvío Syslog (`rsyslog`)**: Se desplegó el fichero de configuración **[`60-custom-log.conf`](../software/rsyslog/60-custom-log.conf)** en rsyslog para monitorizar `/var/log/jsbach/user-actions.log` mediante el módulo `imfile` y reenviar las alertas al Wazuh Manager (`10.1.4.138:514/UDP`).
+- **Reenvío Syslog (`rsyslog`)**: Se desplegó el fichero de configuración **[60-custom-log.conf](../software/rsyslog/60-custom-log.conf)** en rsyslog para monitorizar `/var/log/jsbach/user-actions.log` mediante el módulo `imfile` y reenviar las alertas al Wazuh Manager (`10.1.4.138:514/UDP`).
 
 ```conf
 # Muestra de 60-custom-log.conf:
@@ -56,7 +56,7 @@ local7.* @10.1.4.138:514
 ```
 
 ### 4. Syslog Remoto desde Switches TP-Link (Infraestructura Física)
-- **Configuración de Hardware**: Carlos Delgado habilitó la transmisión de logs en los switches gestionables TP-Link hacia la IP del Wazuh Manager (`10.1.4.138:514/UDP`). Las configuraciones de respaldo de los switches se encuentran estructuradas por sede y función en **[`ayto-principal/sysConfigBackup.cfg`](../software/switch-tplink/ayto-principal/sysConfigBackup.cfg)**, **[`ayto-servidores/sysConfigBackup.cfg`](../software/switch-tplink/ayto-servidores/sysConfigBackup.cfg)** y **[`casa-cultura/sysConfigBackup.cfg`](../software/switch-tplink/casa-cultura/sysConfigBackup.cfg)**.
+- **Configuración de Hardware**: Carlos Delgado habilitó la transmisión de logs en los switches gestionables TP-Link hacia la IP del Wazuh Manager (`10.1.4.138:514/UDP`). Las configuraciones de respaldo de los switches se encuentran estructuradas por sede y función en **[`ayto-principal/sysConfigBackup.cfg`](../software/switch-tplink/ayto-principal/sysConfigBackup.cfg)**, **[`ayto-trabajadores/sysConfigBackup.cfg`](../software/switch-tplink/ayto-trabajadores/sysConfigBackup.cfg)** y **[`casa-cultura/sysConfigBackup.cfg`](../software/switch-tplink/casa-cultura/sysConfigBackup.cfg)**.
 
 ```cfg
 # Muestra de configuración Syslog en switches TP-Link SG2210MP:
@@ -69,7 +69,7 @@ logging host index 1 10.1.4.138 6
 
 ## ⚙️ Arquitectura del SIEM: Wazuh Manager (`ossec.conf`)
 
-El servidor Wazuh Manager se desplegó en Ubuntu Server. El fichero de configuración completo utilizado en producción se encuentra en **[`ossec.conf`](../software/wazuh/ossec.conf)**. A continuación se resumen los módulos activos más relevantes:
+El servidor Wazuh Manager se desplegó en Ubuntu Server. El fichero de configuración completo utilizado en producción se encuentra en **[ossec.conf](../software/wazuh/ossec.conf)**. A continuación se resumen los módulos activos más relevantes:
 
 - **File Integrity Monitoring (FIM / Syscheck)**: Auditoría de binarios del sistema (`/etc`, `/usr/bin`, `/sbin`, `/boot`) cada 12 horas, con monitorización en **tiempo real y reporte de cambios de contenido** en `/home/soc/Descargas`. Generación de alertas ante ficheros nuevos y exclusión de logs rotativos (`.log`, `.swp`).
 
@@ -92,7 +92,7 @@ Jorge Cortés configuró la integración nativa entre el motor FIM de Wazuh y la
 
 ### Configuración
 
-La integración se habilitó insertando un bloque `<integration>` en **[`ossec.conf`](../software/wazuh/ossec.conf)**:
+La integración se habilitó insertando un bloque `<integration>` en **[ossec.conf](../software/wazuh/ossec.conf)**:
 
 ```xml
 <!-- Muestra de integración con VirusTotal -->
@@ -106,7 +106,7 @@ La integración se habilitó insertando un bloque `<integration>` en **[`ossec.c
 
 ### Reglas de Categorización
 
-Las respuestas del API se procesaban mediante 7 reglas XML (IDs 87100 a 87106), disponibles en **[`0490-virustotal_rules.xml`](../software/wazuh/rules/0490-virustotal_rules.xml)**. El desglose de severidades es:
+Las respuestas del API se procesaban mediante 7 reglas XML (IDs 87100 a 87106), disponibles en **[0490-virustotal_rules.xml](../software/wazuh/rules/0490-virustotal_rules.xml)**. El desglose de severidades es:
 
 | Rule ID | Nivel | Descripción | Mapeo |
 |:---:|:---:|:---|:---|
@@ -124,7 +124,7 @@ Las respuestas del API se procesaban mediante 7 reglas XML (IDs 87100 a 87106), 
 
 Jorge Cortés, con el apoyo de Marcos en la corrección estructural de normas, integró **Suricata** enviando eventos en formato `eve.json` a Wazuh.
 
-Para evitar la "fatiga de alertas" (*Alert Fatigue*), el equipo realizó un trabajo intensivo de *tuning*, ajustando umbrales de detección (*thresholds*) y creando un conjunto de **21 reglas personalizadas** (SID 1200001 a 1200021). El fichero completo de reglas está disponible en **[`local.rules`](../software/suricata/rules/local.rules)**.
+Para evitar la "fatiga de alertas" (*Alert Fatigue*), el equipo realizó un trabajo intensivo de *tuning*, ajustando umbrales de detección (*thresholds*) y creando un conjunto de **21 reglas personalizadas** (SID 1200001 a 1200021). El fichero completo de reglas está disponible en **[local.rules](../software/suricata/rules/local.rules)**.
 
 ```
 # Muestra de regla local.rules:
@@ -150,7 +150,7 @@ Las reglas cubren las siguientes categorías de detección:
 
 Para garantizar un tiempo de respuesta inmediato ante caídas de servicio o alertas críticas de seguridad, el equipo desarrolló el bot de notificaciones **GuarromanBot**.
 
-> 💡 **Código y Documentación del Bot**: La arquitectura completa y guía de despliegue del bot están documentados en **[`telegram-bot/README.md`](../software/telegram-bot/README.md)**.
+> 💡 **Código y Documentación del Bot**: La arquitectura completa y guía de despliegue del bot están documentados en **[telegram-bot/README.md](../software/telegram-bot/README.md)**.
 
 * **Desarrollo e Iteraciones**:
   - **Enrique Cebrián (Kike)**: Desarrollo del prototipo inicial de alertas en Bash (15 de abril) como prueba de concepto para comprobar disponibilidad de red por ICMP/puertos y errores en logs de Apache (`access.log` / `error.log`).
