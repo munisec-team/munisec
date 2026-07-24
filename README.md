@@ -44,21 +44,19 @@ Ambas sedes fueron interconectadas mediante túneles **VPN (WireGuard)** para ga
 ## 📂 Estructura del Repositorio
 Toda la documentación técnica se encuentra en la carpeta [`/docs`](./docs/).
 
-### 🌐 Infraestructura y Redes
-- [00. Arquitectura de Red](./docs/00-network-architecture.md) - Topología en detalle, VLANs, y routers (JSBach, pfSense).
+### 🌐 Infraestructura y SOC
+- [00. Arquitectura de Red](./docs/00-network-architecture.md) - Topología en detalle, VLANs, y routers (JSBach).
 - [01. Infraestructura y Servicios](./docs/01-infrastructure.md) - Active Directory, Odoo, DMZ.
-- [02. SOC y SIEM](./docs/02-soc-siem.md) - Wazuh, Suricata, integración de alertas y VirusTotal.
+- [02. SOC, SIEM y Monitorización](./docs/02-soc-siem.md) - Wazuh, Suricata, Syslog, Bot de Telegram e integración VirusTotal.
 
-### 🛡️ Blue Team & Defensa
-- [03. Bastionado (Hardening)](./docs/03-hardening.md) - Aseguramiento de servidores, 2FA, iptables.
-- [07. Respuesta a Incidentes](./docs/07-blue-team.md) - Gestión del desastre eléctrico y restauración.
-- [08. Análisis Forense](./docs/08-forensics.md) - Metodología forense, volcado de memoria, scripts de automatización.
-- [09. Cumplimiento Legal (ENS/RGPD)](./docs/09-compliance.md) - Adecuación al Esquema Nacional de Seguridad.
+### 🛡️ Defensa y Forense
+- [03. Bastionado (Hardening)](./docs/03-hardening.md) - Aseguramiento de servidores, WAF, GPOs, 2FA, iptables y cifrado.
+- [05. Forense Digital (DFIR)](./docs/05-dfir-forensics.md) - Adquisición de memoria RAM, análisis Volatility y respuesta ante incidentes.
+- [06. Normativa y Cumplimiento](./docs/06-compliance.md) - Adecuación al ENS, RGPD, notificaciones AEPD y auditorías SCA.
 
-### ⚔️ Red Team & Ataque
-- [04. Inteligencia de Fuentes Abiertas (OSINT)](./docs/04-osint.md) - Metodología de reconocimiento de perfiles gubernamentales del equipo de **Benimerda**.
-- [05. Operaciones Red Team](./docs/05-red-team.md) - Informe completo de intrusión, desde el acceso inicial hasta la escalada a `root`.
-- [06. Vulnerabilidades Identificadas](./docs/06-findings.md) - Matriz de hallazgos críticos.
+### ⚔️ Operaciones Ofensivas y Registro
+- [04. Red Team y Pentesting](./docs/04-red-team-pentesting.md) - OSINT, cadena de ataque completa (Attack Chain) y matriz de hallazgos.
+- [07. Cronología de Operaciones](./docs/07-project-timeline.md) - Bitácora e hitos del proyecto.
 
 ## 👥 El Equipo
 Este proyecto fue desarrollado por un grupo de 8 técnicos de ciberseguridad. Para consultar la aportación detallada de cada integrante a la infraestructura, pentesting, desarrollo de scripts y documentación, consulta:

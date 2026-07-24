@@ -5,52 +5,59 @@
 
 ## Descripción General
 
-Tras la evaluación de la postura de seguridad y el análisis de los ataques ejecutados por el Red Team, el equipo implementó una estrategia de defensa en profundidad. El objetivo fue reducir la superficie de ataque, restringir el movimiento lateral y proteger la integridad de los datos, siguiendo las directrices del Esquema Nacional de Seguridad (ENS).
+Tras evaluar la postura de seguridad inicial y analizar las técnicas empleadas durante las simulaciones de ciberataques, el equipo implementó una estrategia de defensa en profundidad. El objetivo principal consistió en reducir la superficie de exposición, erradicar vectores de movimiento lateral entre sedes y garantizar la integridad de las estaciones y servidores del Ayuntamiento de Guarromán.
 
-## Medidas Implementadas
+---
 
-### 🛡️ Control de Acceso y Red
+## 🛡️ 1. Control de Acceso y Red Perimetral (JSBach)
 
-*   **Autenticación Fuerte (2FA)**: Se implementó un Doble Factor de Autenticación mediante tokens USB hardware para el acceso a sistemas críticos, previniendo ataques de fuerza bruta o robo de credenciales.
-*   **Segmentación de Red y Firewalls Locales (iptables)**: Se configuraron reglas estrictas de `iptables` en el router JSBach y en los servidores.
-    *   *Deny by default*: Bloqueo total del tráfico inter-VLAN, permitiendo solo puertos específicos (ej. 80/443 hacia la DMZ, 53 hacia el DNS del AD).
-    *   *Restricción de Gestión*: Acceso SSH y HTTP(S) a los paneles de gestión (Switches, pfSense, JSBach) restringido exclusivamente a la IP del administrador en la VLAN 1.
+* **Filtrado de Tráfico e iptables**: **Jose Luis Oliver (Joselu)** y **Alfonso Garrido (Alfon)** diseñaron e implementaron una política estricta de *Deny by Default* en el router de frontera JSBach.
+  - **Aislamiento Inter-VLAN**: Bloqueo total del tráfico cruzado entre las subredes de la sede (VLAN 3 Servidores, VLAN 4 SOC, VLAN 5/6 Trabajadores), permitiendo únicamente tráfico explícito (ej. consulta `53/UDP` hacia el DNS del Active Directory).
+  - **Control de Acceso a la DMZ**: El tráfico hacia los servicios públicos alojados en la interfaz física dedicada de la DMZ se restringió exclusivamente a los puertos web `80/TCP` y `443/TCP`.
+  - **Restricción de Paneles de Gestión**: Los servicios de administración (SSH `22/TCP`, paneles HTTP/HTTPS de switches TP-Link SG2210MP) se configuraron para aceptar conexiones únicamente desde IPs autorizadas pertenecientes a la **VLAN 1 (Administración)**.
+* **Autenticación Fuerte (2FA)**: **Enrique Cebrián (Kike)** integró un sistema de autenticación de doble factor mediante tokens hardware USB en los servidores críticos, protegiendo las cuentas privilegiadas ante ataques de fuerza bruta o suplantación de credenciales.
 
-### 🌐 Securización de Servicios Web
+---
 
-El servidor Apache que alojaba WordPress y phpMyAdmin en la DMZ fue objeto de un bastionado severo por parte de Alfonso tras detectar el uso del escenario vulnerable por parte del equipo rival:
+## 🌐 2. Securización de Servicios Web en DMZ
 
-*   **Ofuscación de Banners**: Modificación de las cabeceras HTTP (`ServerSignature Off`, `ServerTokens Prod`) para evitar la enumeración de versiones del servidor web y del sistema operativo.
-*   **ModSecurity (WAF)**: Implementación del *Web Application Firewall* ModSecurity en Apache, con el conjunto de reglas OWASP Core Rule Set (CRS) para bloquear ataques de inyección SQL (SQLi), Cross-Site Scripting (XSS) e inclusiones de archivos locales (LFI/RFI).
-*   **Cifrado en Tránsito**: Despliegue de certificados TLS/SSL forzando HTTPS en todas las comunicaciones web internas y externas.
+El servidor Apache que hospeda el portal institucional y phpMyAdmin en la DMZ fue objeto de un bastionado intensivo ejecutado por **Alfonso Garrido**, **Pau Roig** y **Jose Luis Oliver**:
 
-### 💻 Endpoint, Datos y GPOs
+* **Ofuscación de Banners y Cabeceras HTTP**: Desactivación de la firma del servidor (`ServerSignature Off`, `ServerTokens Prod`) para ocultar las versiones del servidor web y del sistema operativo ante escaneos de reconocimiento.
+* **Web Application Firewall (ModSecurity)**: Despliegue del WAF **ModSecurity** en Apache integrado con la regla base *OWASP Core Rule Set (CRS)*, filtrando activamente intentos de inyección SQL (SQLi), Cross-Site Scripting (XSS) e inclusión de archivos locales/remotos (LFI/RFI).
+* **Cifrado en Tránsito (HTTPS)**: Despliegue de certificados TLS/SSL forzando la redirección y comunicación cifrada en todas las sesiones HTTP.
 
-*   **Cifrado de Datos en Reposo**: Implementación de **gocryptfs** en los servidores Ubuntu críticos para cifrar directorios sensibles, protegiendo la información en caso de acceso físico no autorizado al almacenamiento.
-*   **Políticas de Active Directory**: Luis y Kike aplicaron políticas globales (GPOs) desde el AD para asegurar los endpoints del dominio. A continuación se detalla el checklist de políticas aplicadas:
+---
 
-#### 📜 Checklist de Directivas de Grupo (GPOs)
+## 💻 3. Hardening de Endpoints y Directivas de Dominio (GPOs)
 
-**Firewall y Protocolos Inseguros**
-- [x] Firewall de Windows activo en todos los equipos del dominio.
-- [ ] *Auditoría*: Verificar que los equipos de Benimerda no tengan el firewall desactivado (posible entrada de ataque).
-- [x] **SMBv1 desactivado** en todos los equipos.
-- [ ] *Auditoría*: Verificar que los equipos de Benimerda tengan SMBv1 desactivado.
+**Luis Fuster**, **Enrique Cebrián (Kike)**, **Jorge Cortés** y **Marcos Bori** aplicaron un conjunto unificado de Directivas de Grupo (GPOs) desde el Active Directory (`guarroman.local`) para securizar las estaciones de trabajo y servidores del dominio.
 
-**Política de Contraseñas**
-- [x] Longitud mínima: **12 caracteres**.
-- [x] Máximo de **5 intentos** de inicio de sesión antes de bloqueo.
+### 📜 Checklist de Directivas de Grupo (GPOs)
 
-**Ejecución de Scripts**
-- [x] Activada ejecución de scripts en modo seguro.
-- [x] Solo se permiten **scripts firmados** (no se pueden ejecutar scripts no cifrados/sin firmar).
+#### 🔒 Firewall y Protocolos Inseguros
+- [x] **Firewall de Windows**: Habilitado obligatoriamente en todos los perfiles de red (Dominio, Privado y Público).
+- [ ] *Auditoría Pendiente*: Confirmar la ausencia de excepciones locales deshabilitadas en equipos cliente de sedes secundarias.
+- [x] **Desactivación de SMBv1**: Deshabilitado globalmente en todas las estaciones para neutralizar vectores de ejecución remota de código (RCE) tipo WannaCry/EternalBlue.
+- [ ] *Auditoría Pendiente*: Auditada la desinstalación completa de la característica SMBv1 en la totalidad del inventario.
 
-**Control de Dispositivos Extraíbles (USB)**
-- [x] Bloqueada escritura, lectura y ejecución desde pendrives en equipos del Ayuntamiento (previniendo exfiltración de datos o ataques *BadUSB*).
-- [ ] **Pendiente**: aplicar en equipos de Casa de la Cultura y PCs restantes del dominio.
-- [x] **Desactivada** reproducción automática (Autorun) de dispositivos.
-- [x] En caso de conectar un dispositivo USB, no se podrá acceder sin activación manual.
+#### 🔑 Políticas de Autenticación y Bloqueo
+- [x] **Complejidad y Longitud**: Requisito de longitud mínima de **12 caracteres** con parámetros de complejidad activos (mayúsculas, minúsculas, números y símbolos).
+- [x] **Umbral de Bloqueo de Cuenta**: Bloqueo automático de la cuenta tras **5 intentos fallidos** consecutivos de inicio de sesión.
 
-**Control de Cuentas de Usuario (UAC)**
-- [x] Opciones de seguridad configuradas para requerir permisos de administrador.
-- [x] Control de cuentas de usuario activado y estricto.
+#### ⚙️ Control de Ejecución de Scripts
+- [x] **Ejecución Restringida de Scripts**: Configuración de `ExecutionPolicy` para permitir únicamente la ejecución de **scripts firmados digitalmente**, bloqueando la ejecución de scripts arbitrarios o sin validar en PowerShell y CMD.
+
+#### 💾 Control de Dispositivos Extraíbles (USB)
+- [x] **Bloqueo de Unidades de Almacenamiento**: Denegación de permisos de lectura, escritura y ejecución para dispositivos de almacenamiento masivo USB en los equipos del Ayuntamiento.
+- [ ] *Despliegue Pendiente*: Extender la directiva de denegación USB a los terminales de la Casa de la Cultura.
+- [x] **Desactivación de Autorun/Autoplay**: Deshabilitada la ejecución automática de medios extraíbles para neutralizar amenazas tipo *BadUSB*.
+
+#### 🛡️ Control de Cuentas de Usuario (UAC)
+- [x] **UAC Estricto**: Ajustado al nivel máximo de elevación de privilegios, solicitando credenciales administrativas explícitas ante cualquier modificación del sistema.
+
+---
+
+## 🔐 4. Protección y Cifrado de Datos en Reposo
+
+* **Cifrado de Almacenamiento con gocryptfs**: **Enrique Cebrián (Kike)** implementó el cifrado a nivel de sistema de archivos mediante **gocryptfs** en los servidores Ubuntu críticos. Esta medida garantiza que los directorios sensibles permanezcan cifrados en disco, protegiendo la información confidencial frente a la extracción física de unidades o accesos no autorizados al almacenamiento.
