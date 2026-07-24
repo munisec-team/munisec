@@ -9,15 +9,17 @@ La disciplina de Forense Digital y Respuesta a Incidentes (DFIR) permitió al eq
 
 ---
 
-## 🛠️ 1. Adquisición Automática de Evidencias Volátiles
+## 🛠️ 1. Automatización con Forensic Suite Dashboard
 
-* **Investigadores**: **Alfonso Garrido** y **Carlos Delgado**.
-* **Arquitectura de Recolección**: Se desarrollaron e implementaron scripts automatizados en Bash (Linux) y PowerShell (Windows) ejecutados de forma programada (*cron* / *Task Scheduler*) y desencadenados ante eventos críticos.
+* **Desarrollo**: Herramienta de software propio desarrollada por **Alfonso Garrido**.
+* **Ubicación**: Disponible en el repositorio dentro de `software/forensic-suite-dashboard/` (o en su [repositorio original](https://github.com/alfgarpen/Forensic-Suite-dashboard)).
+* **Arquitectura**: Se desplegó una **Forensic Suite** integral con arquitectura cliente-servidor (Backend Flask + Frontend Web). Esta herramienta permitió centralizar y automatizar todo el ciclo de vida forense a través de una interfaz web moderna (puerto `5001`).
+* **Despliegue**: El software incluye scripts instaladores de un solo clic (`install.sh` y `install.ps1`) que configuran servicios en segundo plano (`systemd` en Linux y servicios en Windows), descargan Volatility 3 de forma transparente y preparan el entorno de Python, manteniendo la capacidad forense siempre activa.
 
-### 📋 Módulos del Sistema de Adquisición
-1. **Extracción de Tráfico y Conexiones**: Captura de sockets activos (`netstat`, `ss`), tabla de procesos en ejecución (`ps aux`, `tasklist`) y módulos/controladores cargados en el kernel.
-2. **Volcado de Memoria RAM (Memory Dump)**: Generación de volcados completos de la memoria volátil utilizando **LiME** (*Linux Memory Extractor*) en servidores Linux y **DumpIt / FTK Imager** en estaciones Windows.
-3. **Transferencia Segura**: Reenvío cifrado de las capturas formateadas (`Reporte_[Equipo]_[Fecha]_[Hora]`) hacia el almacenamiento aislado del SOC.
+### 📋 Módulos del Sistema
+1. **Adquisición Rápida**: Interfaz para capturar y subir volcados de memoria directamente desde el dashboard.
+2. **Análisis Automático**: Integración *seamless* con **Volatility 3** para procesar los volcados usando plugins preconfigurados (detección de procesos ocultos, conexiones de red anómalas, y escaneo de payloads).
+3. **Reportes Profesionales**: Motor de generación de reportes automáticos en HTML (se generaron 67 reportes durante el ejercicio para los distintos equipos del laboratorio).
 
 ---
 

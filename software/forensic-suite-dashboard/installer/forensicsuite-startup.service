@@ -1,0 +1,13 @@
+[Unit]
+Description=Forensic Suite Startup Analysis
+After=network.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=PLACEHOLDER_BASE_DIR
+ExecStart=PLACEHOLDER_BASE_DIR/runtime/bin/python PLACEHOLDER_BASE_DIR/installer/startup_analysis.py
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
