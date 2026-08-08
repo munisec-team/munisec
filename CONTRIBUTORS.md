@@ -4,18 +4,28 @@ Este repositorio refleja el trabajo de un equipo de especialistas en ciberseguri
 
 A continuación se presenta un índice con los roles principales de cada miembro, seguido de un desglose técnico de sus aportaciones en las distintas fases del proyecto (Infraestructura, SOC, Red Team, Forense, etc.).
 
+## 📌 Estructura y División del Equipo
+
+El proyecto se estructuró inicialmente dividiendo a los integrantes en dos equipos principales, con apoyo transversal:
+
+* **🔴 Red Team (Equipo Ofensivo)**: **Jose Luis Oliver (Joselu)**, **Carlos Delgado** y **Pau Roig**. (Responsables de intrusión, pentesting, OSINT y explotación).
+* **🔵 Blue Team (Equipo Defensivo)**: **Jorge Cortés**, **Enrique Cebrián (Kike)**, **Luis Fuster** y **Marcos Bori**. (Responsables de infraestructura, bastionado, Active Directory, SOC/SIEM, DFIR y respuesta a incidentes/legal).
+* **🟣 Apoyo Transversal**: **Alfonso Garrido (Alfon)**. (Apoyo técnico activo tanto en tareas ofensivas como defensivas, desarrollo forense y redes).
+
+> *Nota: Aunque miembros del Red Team apoyaron puntualmente en tareas de configuración o infraestructura (y viceversa), la responsabilidad y función principal se mantuvo según la división indicada.*
+
 ## 📌 Índice de Contribuyentes
 
-| Miembro del Equipo | Rol Principal en el Proyecto | Enlace al Perfil |
-| :--- | :--- | :--- |
-| **Jose Luis Oliver (Joselu)** | Coordinador, Arquitecto de Red & Pentester | [Ver Perfil](#jose-luis-oliver-herranz-joselujolu) |
-| **Carlos Delgado** | Especialista OSINT & Analista Forense | [Ver Perfil](#carlos-delgado) |
-| **Enrique Cebrián (Kike)** | Arquitecto de Seguridad & Respuesta a Incidentes | [Ver Perfil](#enrique-cebrián-kike) |
-| **Pau Roig** | Administrador de Sistemas y Web (DMZ) | [Ver Perfil](#pau-roig) |
-| **Jorge Cortés** | Analista SOC (Tier 2/3) & Forense Digital | [Ver Perfil](#jorge-cortés) |
-| **Alfonso Garrido (Alfon)** | Analista de Redes Seguras & Forense | [Ver Perfil](#alfonso-garrido-alfon) |
-| **Luis Fuster** | Técnico de Despliegue masivo & Endpoint Security | [Ver Perfil](#luis-fuster) |
-| **Marcos Bori** | Administrador Active Directory & SOC | [Ver Perfil](#marcos-bori) |
+| Miembro del Equipo | Equipo Principal | Rol Principal en el Proyecto | Enlace al Perfil |
+| :--- | :--- | :--- | :--- |
+| **Jose Luis Oliver (Joselu)** | 🔴 Red Team | Coordinador, Arquitecto de Red & Pentester | [Ver Perfil](#jose-luis-oliver-herranz-joselujolu) |
+| **Carlos Delgado** | 🔴 Red Team | Especialista OSINT & Pentester | [Ver Perfil](#carlos-delgado) |
+| **Pau Roig** | 🔴 Red Team | Pentester Web (DMZ) & OSINT | [Ver Perfil](#pau-roig) |
+| **Jorge Cortés** | 🔵 Blue Team | Analista SOC (Tier 2/3) & Forense Digital | [Ver Perfil](#jorge-cortés) |
+| **Enrique Cebrián (Kike)** | 🔵 Blue Team | Arquitecto de Seguridad & Respuesta a Incidentes | [Ver Perfil](#enrique-cebrián-kike) |
+| **Luis Fuster** | 🔵 Blue Team | Técnico de Despliegue & Endpoint Security | [Ver Perfil](#luis-fuster) |
+| **Marcos Bori** | 🔵 Blue Team | Administrador Active Directory & SOC | [Ver Perfil](#marcos-bori) |
+| **Alfonso Garrido (Alfon)** | 🟣 Transversal | Analista de Redes Seguras, Desarrollador & Forense | [Ver Perfil](#alfonso-garrido-alfon) |
 
 ---
 
