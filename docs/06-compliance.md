@@ -25,7 +25,7 @@ Para alcanzar la acreditación en categoría de seguridad *Media/Alta*, se elabo
 | **[op.acc.1]** | Identificación y Autenticación | Despliegue de segundo factor de autenticación (2FA) en servidores críticos y doble factor en acceso a VPNs. |
 | **[op.exp.2]** | Registro de Actividad | Recolección centralizada e inalterable de logs mediante Wazuh SIEM, Sysmon y rsyslog remoto desde switches TP-Link. |
 | **[mp.info.6]** | Confidencialidad de la Información | Obligatoriedad de TLS 1.3/HTTPS en servicios web y cifrado en reposo con `gocryptfs` en los volúmenes del ERP Odoo. |
-| **[op.cont.1]** | Plan de Continuidad de Negocio | Automatización de procedimientos de backup (`backupJSBACH.sh`) y plan de recuperación ante desastres (*Bare Metal recovery*). |
+| **[op.cont.1]** | Plan de Continuidad de Negocio | Automatización de procedimientos de backup (`backupJSBach.sh`) y plan de recuperación ante desastres (*Bare Metal recovery*). |
 
 ---
 

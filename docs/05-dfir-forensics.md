@@ -53,4 +53,4 @@ Durante el periodo operativo ocurrieron dos incidentes críticos principales que
    - **Respuesta**: **Enrique Cebrián (Kike)** ejecutó la reinstalación completa del motor de gestión y aisló el Bot de Telegram para consumir exclusivamente alertas JSON no bloqueantes.
 2. **Reconstrucción Bare Metal por Fallo Eléctrico Masivo**:
    - **Incidente**: Una caída generalizada de alimentación destruyó la configuración de los firewalls primarios pfSense.
-   - **Respuesta**: **Jose Luis Oliver** y **Enrique Cebrián** ejecutaron los scripts de contingencia `backupJSBACH.sh` y `restoreJSBACH.sh`, rediseñando dinámicamente la topología para trasladar las terminaciones VPN WireGuard a los routers Linux JSBach, minimizando el tiempo de parada (RTO).
+   - **Respuesta**: **Jose Luis Oliver** y **Enrique Cebrián** ejecutaron los procedimientos de contingencia mediante el script `backupJSBach.sh`, rediseñando dinámicamente la topología para trasladar las terminaciones VPN WireGuard a los routers Linux JSBach, minimizando el tiempo de parada (RTO).
