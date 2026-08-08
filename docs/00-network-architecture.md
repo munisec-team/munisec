@@ -11,7 +11,7 @@ La arquitectura de red del proyecto está diseñada para simular una infraestruc
 
 ### 📐 Topología Inicial (Pre-Incidente)
 
-![Arquitectura de Red Pre-Incidente](../assets/diagrams/network-topology-0.jpeg)
+![Arquitectura de Red Pre-Incidente](../assets/diagrams/network-topology-1.jpeg)
 *(Plano de diseño inicial de la red)*
 
 La red está segmentada físicamente en dos ubicaciones, conectadas de forma segura a través de Internet público.
@@ -33,7 +33,7 @@ También se abrió un túnel VPN adicional (`10.201.0.0/24`) para simular a los 
 
 | VLAN | Subred | Propósito | Servicios / Equipos Críticos |
 |------|--------|-----------|-----------------------------|
-| **VLAN 1** | `10.1.1.0/24` | **Administración** | Gestión de red, switches, acceso privilegiado |
+| **VLAN 1** | `10.1.1.0/24` | **Administración** | Gestión de red, switches, acceso privileged |
 | **VLAN 3** | `10.1.3.0/24` | **Servidores Internos** | Active Directory (AD), Servidor Odoo (ERP) |
 | **VLAN 4** | `10.1.4.0/24` | **SOC / Seguridad** | Servidor Wazuh Manager (`10.1.4.138`), Suricata NIDS |
 | **VLAN 5** | `10.1.5.0/24` | **Oficinas / Trabajo** | Endpoints de funcionarios (Trabajo interno) |
@@ -65,7 +65,7 @@ Inicialmente, se estableció un túnel VPN IPSec/WireGuard entre los dos disposi
 
 ### Fase 2: Contingencia y Rediseño (VPN sobre JSBach)
 
-![Arquitectura de Red Definitiva (Post-Incidente)](../assets/diagrams/network-topology-1.jpeg)
+![Arquitectura de Red Definitiva (Post-Incidente)](../assets/diagrams/network-topology-2.jpeg)
 *(Topología definitiva tras la caída de pfSense)*
 
 Tras un incidente de sobretensión ("tormenta eléctrica") que dañó los equipos pfSense, el equipo de red tomó la decisión arquitectónica de eliminar la capa de pfSense y exponer directamente los routers Linux (JSBach) a Internet. 
