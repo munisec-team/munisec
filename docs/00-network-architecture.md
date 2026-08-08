@@ -14,11 +14,23 @@ El enrutamiento, la segmentación por VLANs, la gestión DHCP, el portal cautivo
 ## 📐 Topología Lógica de Red
 
 ![Topología Lógica de Red](../assets/diagrams/network-topology-1.jpeg)
-*(Diagrama de la topología lógica global de la infraestructura)*
+*(Esquema de la topología lógica global de la infraestructura)*
 
 La red se estructura en dos grandes bloques de direccionamiento privado (`10.1.0.0/16` para el Ayuntamiento y `10.2.0.0/16` para la Casa de la Cultura), interconectados de forma permanente mediante un túnel seguro **WireGuard Site-to-Site** (`10.200.0.0/30`) establecido entre los dos routers JSBach.
 
 Adicionalmente, la infraestructura cuenta con un túnel VPN dedicado (`10.201.0.0/24`) para accesos remotos y teletrabajo.
+
+---
+
+## 🔌 Topología Física y Despliegue de Hardware
+
+![Topología Física de Red](../assets/diagrams/network-topology-2.jpeg)
+*(Esquema de la interconexión física de equipos, switches y routers)*
+
+La infraestructura física está compuesta por:
+* **Enrutadores Core / Frontera**: Servidores Linux dedicados ejecutando el software de enrutamiento y cortafuegos `JSBach`.
+* **Conmutación**: Switches gestionables TP-Link SG2210MP interconectados por enlaces *trunk* etiquetados con 802.1Q.
+* **Servidores y Endpoints**: Servidores Windows Server 2016 y Ubuntu Server, junto a estaciones cliente Windows 10 unidas al dominio `guarroman.local`.
 
 ---
 
@@ -55,25 +67,20 @@ La sede secundaria alberga los servicios web públicos expuestos y la red de acc
 
 ---
 
-## 🔌 Topología Física y Despliegue de Hardware
+## ⚡ Evolución Arquitectónica y Contingencia (DRP)
 
-![Topología Física de Red](../assets/diagrams/network-topology-2.jpeg)
-*(Diagrama de interconexión física de equipos, switches y routers)*
+Durante las primeras etapas del proyecto, el perímetro exterior estaba resguardado por cortafuegos dedicados **pfSense** (con IPs públicas `172.29.230.160` y `.161`), sobre los cuales se levantaban los primeros túneles VPN inter-sedes.
 
-La infraestructura física está compuesta por:
-* **Routers de Frontera / Enrutadores Core**: Servidores Linux dedicados ejecutando el software de enrutamiento y cortafuegos `JSBach`.
-* **Conmutación**: Switches gestionables TP-Link SG2210MP interconectados por enlaces *trunk* etiquetados con 802.1Q.
-* **Servidores y Endpoints**: Servidores Windows Server 2016 y Ubuntu Server, junto a estaciones cliente Windows 10 unidas al dominio `guarroman.local`.
+Sin embargo, a principios de mayo ocurrió un **incidente por fallo eléctrico masivo (sobretensión)** que inutilizó los equipos pfSense de frontera. Ante esta emergencia, el equipo aplicó un plan de recuperación (DRP):
 
----
-
-## 🔐 Enrutamiento e Interconexión de Sedes
-
-La interconexión permanente entre ambas sedes permite el tráfico cifrado punto a punto entre la red corporativa del Ayuntamiento y la Casa de la Cultura:
+1. **Reestructuración a JSBach**: Se eliminó la capa de pfSense y se promovió el router Linux propio **JSBach** como enrutador de frontera y firewall principal.
+2. **Migración de Túneles VPN**: Se ejecutaron las rutinas del script `backupJSBach.sh` para reconfigurar la interfaz WireGuard (`wg0`) directamente sobre los JSBach de ambas sedes.
+3. **Enrutamiento entre Sedes**: Se restauró la comunicación inter-sedes mediante las siguientes rutas permanentes:
 
 ```bash
-# Esquema de enrutamiento entre sedes vía interfaz WireGuard (wg0)
+# Enrutamiento inter-sedes restaurado en la interfaz WireGuard (wg0)
 sudo ip route add 10.2.0.0/16 via 10.200.0.2 dev wg0 # Configuración en Ayto
 sudo ip route add 10.1.0.0/16 via 10.200.0.1 dev wg0 # Configuración en Casa Cultura
 ```
+
 
