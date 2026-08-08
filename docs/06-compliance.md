@@ -16,22 +16,22 @@ Tratándose de una Administración Pública local, el diseño, despliegue y oper
 
 Para alcanzar la acreditación en categoría de seguridad *Media/Alta*, se elaboró el expediente de adecuación y se implementaron los siguientes controles técnicos y operativos exigidos por el ENS:
 
-* 📄 **Documento Oficial del Expediente**: **[GUARROMAN_Expediente_Normativo_ENS_.pdf](../reports/compliance/GUARROMAN_Expediente_Normativo_ENS_.pdf)**
+* 📄 **Documento Oficial del Expediente**: **[Expediente_Normativo_ENS_Guarroman.pdf](../reports/compliance/Expediente_Normativo_ENS_Guarroman.pdf)**
 
 ### 🛡️ Medidas Técnicas Implementadas (RD 311/2022)
 
 | Medida ENS | Denominación | Implementación Técnica en Guarromán |
 | :--- | :--- | :--- |
 | **[op.acc.1]** | Identificación y Autenticación | Despliegue de segundo factor de autenticación (2FA) en servidores críticos y doble factor en acceso a VPNs. |
-| **[op.exp.2]** | Registro de Actividad | Recolección centralizada e inalterable de logs mediante Wazuh SIEM, Sysmon y rsyslog remoto desde switches TP-Link. |
+| **[op.exp.2]** | Registro de Actividad | Recolección centralizada e inalterable de registros de actividad mediante Wazuh SIEM, Sysmon y rsyslog remoto desde switches TP-Link. |
 | **[mp.info.6]** | Confidencialidad de la Información | Obligatoriedad de TLS 1.3/HTTPS en servicios web y cifrado en reposo con `gocryptfs` en los volúmenes del ERP Odoo. |
-| **[op.cont.1]** | Plan de Continuidad de Negocio | Automatización de procedimientos de backup (`backupJSBach.sh`) y plan de recuperación ante desastres (*Bare Metal recovery*). |
+| **[op.cont.1]** | Plan de Continuidad de Negocio | Automatización de procedimientos de backup (**[`backupJSBach.sh`](../scripts/backup/backupJSBach.sh)**) y plan de recuperación ante desastres (*Bare Metal recovery*). |
 
 ---
 
-## 📜 2. Auditoría de Bastionado y Configuración Segura (Wazuh SCA)
+## 📜 2. Auditoría de Protecciones y Configuración Segura (Wazuh SCA)
 
-A través del módulo **Security Configuration Assessment (SCA)** de Wazuh Manager, se auditó el nivel de bastionado de los activos del Ayuntamiento respecto a los estándares **CIS Benchmark**:
+A través del módulo **Security Configuration Assessment (SCA)** de Wazuh Manager, se auditó el nivel de protección de los equipos y servidores del Ayuntamiento respecto a los estándares **CIS Benchmark**:
 
 * **Evaluaciones Automatizadas**: Monitoreo continuo de las configuraciones de seguridad del sistema base.
 * **Métricas Obtenidas**: Identificación de configuraciones por defecto no seguras, eliminación de servicios innecesarios y verificación de permisos estrictos en archivos de sistema (`/etc/shadow`, `/etc/passwd`).
@@ -40,13 +40,13 @@ A través del módulo **Security Configuration Assessment (SCA)** de Wazuh Manag
 
 ## ⚖️ 3. Cumplimiento del RGPD y Gestión de Brechas (AEPD)
 
-Ante simulaciones de exfiltración de información y brechas de seguridad provocadas por incidentes operativos y actividades del Red Team, se redactaron los expedientes legales correspondientes:
+Ante simulaciones de robo de información y brechas de seguridad provocadas por incidentes operativos y actividades del Red Team, se redactaron los expedientes legales correspondientes:
 
 ### 📄 Expedientes Legales y Documentación Adjunta
 
 1. **Notificación Oficial a la AEPD**:
    * Documento formal de comunicación de brecha de datos a la **Agencia Española de Protección de Datos (AEPD)** en un plazo inferior a 72 horas.
-   * 📎 **[05-RGPD-Notificacion-Brecha-AEPD.docx](../reports/incident-response/05-RGPD-Notificacion-Brecha-AEPD.docx)**
+   * 📎 **[04-RGPD-Notificacion-Brecha-AEPD.docx](../reports/incident-response/04-RGPD-Notificacion-Brecha-AEPD.docx)**
 2. **Cadena de Custodia de Evidencias Digitales**:
    * Procedimiento formal para garantizar la integridad, trazabilidad y validez judicial de las evidencias recolectadas durante las investigaciones forenses.
    * 📎 **[03-Cadena-Custodia-Evidencias.docx](../reports/incident-response/03-Cadena-Custodia-Evidencias.docx)**

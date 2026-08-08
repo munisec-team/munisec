@@ -27,15 +27,15 @@ Este documento consolida la cronología operativa del proyecto de ciberseguridad
   - Fase de reconocimiento OSINT: Recopilación de huella digital y perfiles ficticios del Ayuntamiento objetivo.
   - Pruebas de interconexión VPN IPSec entre sedes.
 
-### 3. Mayo 2026: Ataque, Bastionado, DFIR y Recuperación
+### 3. Mayo 2026: Ataque, Protecciones de Seguridad, DFIR y Recuperación
 * **01 May - 10 May**:
   - Desarrollo de la herramienta **Forensic Suite Dashboard** por **Alfonso Garrido** y adquisición de evidencias volátiles con **Carlos Delgado**.
-  - **Desastre Físico (DRP)**: Fallo eléctrico masivo destruye los firewalls pfSense. Transición de emergencia de los túneles VPN WireGuard al router Linux JSBach mediante `backupJSBach.sh`.
-  - Despliegue de **Sysmon** en endpoints Windows y vinculación de eventos con Wazuh SIEM.
+  - **Desastre Físico (DRP)**: Fallo eléctrico masivo destruye los firewalls pfSense. Transición de emergencia de los túneles VPN WireGuard al router Linux JSBach mediante **[`backupJSBach.sh`](../scripts/backup/backupJSBach.sh)**.
+  - Despliegue de **Sysmon** en ordenadores Windows y vinculación de eventos con Wazuh SIEM.
 * **11 May - 18 May (Fase Ofensiva / Red Team)**:
   - Ejecución de la auditoría Red Team. Explotación de phpMyAdmin en DMZ, RCE en WordPress y obtención de acceso `root` en JSBach por sudoers permisivos.
   - Puesta en producción del **Bot de Telegram** (GuarromanBot) para notificaciones de alertas en tiempo real.
-* **19 May - 26 May (Fase de Bastionado y Cierre)**:
+* **19 May - 26 May (Fase de Protecciones y Cierre)**:
   - Implementación de 2FA por USB hardware y cifrado de volúmenes con `gocryptfs`.
-  - Auditoría forense continua sobre 8 activos mediante Volatility.
+  - Auditoría forense continua sobre 8 servidores y sistemas mediante Volatility.
   - Redacción de informes ejecutivos, notificación de brecha a la AEPD y consolidación de documentación normativo-técnica (ENS).

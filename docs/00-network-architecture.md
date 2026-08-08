@@ -30,7 +30,7 @@ Adicionalmente, la infraestructura cuenta con un túnel VPN dedicado (`10.201.0.
 La infraestructura física está compuesta por:
 * **Enrutadores Core / Frontera**: Servidores Linux dedicados ejecutando el software de enrutamiento y cortafuegos `JSBach`.
 * **Conmutación**: Switches gestionables TP-Link SG2210MP interconectados por enlaces *trunk* etiquetados con 802.1Q.
-* **Servidores y Endpoints**: Servidores Windows Server 2016 y Ubuntu Server, junto a estaciones cliente Windows 10 unidas al dominio `guarroman.local`.
+* **Servidores y Equipos de Trabajo**: Servidores Windows Server 2016 y Ubuntu Server 24.04 LTS (versión utilizada en el router JSBach, Wazuh Manager y servidores de la red), junto a ordenadores de trabajo Windows 10 unidos al dominio `guarroman.local`.
 
 ---
 
@@ -45,8 +45,8 @@ El enrutador **JSBach** gestiona el direccionamiento interno y la distribución 
 | **VLAN 1** | `10.1.1.0/24` | **Administración** | Gestión de red, switches, acceso privilegiado |
 | **VLAN 3** | `10.1.3.0/24` | **Servidores Internos** | Active Directory (`guarroman.local`), Servidor Odoo (ERP) |
 | **VLAN 4** | `10.1.4.0/24` | **SOC / Seguridad** | Servidor Wazuh Manager (`10.1.4.138`), Suricata NIDS |
-| **VLAN 5** | `10.1.5.0/24` | **Oficinas / Trabajo** | Endpoints de funcionarios |
-| **VLAN 6** | `10.1.6.0/24` | **Oficinas / Trabajo** | Endpoints de funcionarios |
+| **VLAN 5** | `10.1.5.0/24` | **Oficinas / Trabajo** | Ordenadores de los funcionarios |
+| **VLAN 6** | `10.1.6.0/24` | **Oficinas / Trabajo** | Ordenadores de los funcionarios |
 | **WiFi** | `10.1.99.0/24` | **Wi-Fi Trabajadores** | Red inalámbrica para empleados con autenticación |
 
 ---
@@ -74,7 +74,7 @@ Durante las primeras etapas del proyecto, el perímetro exterior estaba resguard
 Sin embargo, a principios de mayo ocurrió un **incidente por fallo eléctrico masivo (sobretensión)** que inutilizó los equipos pfSense de frontera. Ante esta emergencia, el equipo aplicó un plan de recuperación (DRP):
 
 1. **Reestructuración a JSBach**: Se eliminó la capa de pfSense y se promovió el router Linux propio **JSBach** como enrutador de frontera y firewall principal.
-2. **Migración de Túneles VPN**: Se ejecutaron las rutinas del script `backupJSBach.sh` para reconfigurar la interfaz WireGuard (`wg0`) directamente sobre los JSBach de ambas sedes.
+2. **Migración de Túneles VPN**: Se ejecutaron las rutinas del script **[`backupJSBach.sh`](../scripts/backup/backupJSBach.sh)** para reconfigurar la interfaz WireGuard (`wg0`) directamente sobre los JSBach de ambas sedes.
 3. **Enrutamiento entre Sedes**: Se restauró la comunicación inter-sedes mediante las siguientes rutas permanentes:
 
 ```bash

@@ -1,17 +1,18 @@
-# 03. Bastionado y Defensa en Profundidad (Hardening)
+# 03. Protecciones de Seguridad y Defensa en Profundidad (Hardening)
 
 > 👉 Para consultar el desglose exacto de tareas técnicas realizadas por cada miembro, revisa el **[Registro de Contribuyentes](../CONTRIBUTORS.md)**.<br>
+> 📄 **Informe Maestro del Blue Team**: **[Informe_BlueTeam_Guarroman.pdf](../reports/blue-team/Informe_BlueTeam_Guarroman.pdf)**<br>
 > **Periodo**: Mayo 2026
 
 ## Descripción General
 
-Tras evaluar la postura de seguridad inicial y analizar las técnicas empleadas durante las simulaciones de ciberataques, el equipo implementó una estrategia de defensa en profundidad. El objetivo principal consistió en reducir la superficie de exposición, erradicar vectores de movimiento lateral entre sedes y garantizar la integridad de las estaciones y servidores del Ayuntamiento de Guarromán.
+Tras evaluar la postura de seguridad inicial y analizar las técnicas empleadas durante las simulaciones de ciberataques, el equipo implementó una estrategia de defensa en profundidad. El objetivo principal consistió en reducir la superficie de exposición, erradicar posibilidades de salto entre equipos internos de las sedes y garantizar la integridad de los ordenadores de trabajo y servidores del Ayuntamiento de Guarromán.
 
 ---
 
 ## 🛡️ 1. Control de Acceso y Red Perimetral (JSBach)
 
-* **Filtrado de Tráfico e iptables**: **Jose Luis Oliver (Joselu)** y **Alfonso Garrido (Alfon)** diseñaron e implementaron una política estricta de *Deny by Default* en el router de frontera JSBach.
+* **Filtrado de Tráfico e iptables**: **Jose Luis Oliver (Joselu)** y **Alfonso Garrido (Alfon)** diseñaron e implementaron una política estricta de bloqueo preventivo por defecto en el router de frontera JSBach.
   - **Aislamiento Inter-VLAN**: Bloqueo total del tráfico cruzado entre las subredes de la sede (VLAN 3 Servidores, VLAN 4 SOC, VLAN 5/6 Trabajadores), permitiendo únicamente tráfico explícito (ej. consulta `53/UDP` hacia el DNS del Active Directory).
   - **Control de Acceso a la DMZ**: El tráfico hacia los servicios públicos alojados en la interfaz física dedicada de la DMZ se restringió exclusivamente a los puertos web `80/TCP` y `443/TCP`.
   - **Restricción de Paneles de Gestión**: Los servicios de administración (SSH `22/TCP`, paneles HTTP/HTTPS de switches TP-Link SG2210MP) se configuraron para aceptar conexiones únicamente desde IPs autorizadas pertenecientes a la **VLAN 1 (Administración)**.
@@ -21,7 +22,7 @@ Tras evaluar la postura de seguridad inicial y analizar las técnicas empleadas 
 
 ## 🌐 2. Securización de Servicios Web en DMZ
 
-El servidor Apache que hospeda el portal institucional y phpMyAdmin en la DMZ fue objeto de un bastionado intensivo ejecutado por **Alfonso Garrido**, **Pau Roig** y **Jose Luis Oliver**:
+El servidor Apache que hospeda el portal institucional y phpMyAdmin en la DMZ fue objeto de un refuerzo de seguridad intensivo ejecutado por **Alfonso Garrido**, **Pau Roig** y **Jose Luis Oliver**:
 
 * **Ofuscación de Banners y Cabeceras HTTP**: Desactivación de la firma del servidor (`ServerSignature Off`, `ServerTokens Prod`) para ocultar las versiones del servidor web y del sistema operativo ante escaneos de reconocimiento.
 * **Web Application Firewall (ModSecurity)**: Despliegue del WAF **ModSecurity** en Apache integrado con la regla base *OWASP Core Rule Set (CRS)*, filtrando activamente intentos de inyección SQL (SQLi), Cross-Site Scripting (XSS) e inclusión de archivos locales/remotos (LFI/RFI).
@@ -29,7 +30,7 @@ El servidor Apache que hospeda el portal institucional y phpMyAdmin en la DMZ fu
 
 ---
 
-## 💻 3. Hardening de Endpoints y Directivas de Dominio (GPOs)
+## 💻 3. Protecciones de Ordenadores y Directivas de Dominio (GPOs)
 
 **Luis Fuster**, **Enrique Cebrián (Kike)**, **Jorge Cortés** y **Marcos Bori** aplicaron un conjunto unificado de Directivas de Grupo (GPOs) desde el Active Directory (`guarroman.local`) para securizar las estaciones de trabajo y servidores del dominio.
 
@@ -37,9 +38,9 @@ El servidor Apache que hospeda el portal institucional y phpMyAdmin en la DMZ fu
 
 #### 🔒 Firewall y Protocolos Inseguros
 - [x] **Firewall de Windows**: Habilitado obligatoriamente en todos los perfiles de red (Dominio, Privado y Público).
-- [ ] *Auditoría Pendiente*: Confirmar la ausencia de excepciones locales deshabilitadas en equipos cliente de sedes secundarias.
-- [x] **Desactivación de SMBv1**: Deshabilitado globalmente en todas las estaciones para neutralizar vectores de ejecución remota de código (RCE) tipo WannaCry/EternalBlue.
-- [ ] *Auditoría Pendiente*: Auditada la desinstalación completa de la característica SMBv1 en la totalidad del inventario.
+  - 📌 *Línea de Mejora Futura*: Auditar periódicamente la ausencia de excepciones locales en equipos cliente de sedes secundarias.
+- [x] **Desactivación de SMBv1**: Deshabilitado globalmente en todas las estaciones para neutralizar vías de ejecución remota de código (RCE) tipo WannaCry/EternalBlue.
+  - 📌 *Línea de Mejora Futura*: Auditar la desinstalación completa del módulo SMBv1 en la totalidad de dispositivos del inventario.
 
 #### 🔑 Políticas de Autenticación y Bloqueo
 - [x] **Complejidad y Longitud**: Requisito de longitud mínima de **12 caracteres** con parámetros de complejidad activos (mayúsculas, minúsculas, números y símbolos).
@@ -50,7 +51,7 @@ El servidor Apache que hospeda el portal institucional y phpMyAdmin en la DMZ fu
 
 #### 💾 Control de Dispositivos Extraíbles (USB)
 - [x] **Bloqueo de Unidades de Almacenamiento**: Denegación de permisos de lectura, escritura y ejecución para dispositivos de almacenamiento masivo USB en los equipos del Ayuntamiento.
-- [ ] *Despliegue Pendiente*: Extender la directiva de denegación USB a los terminales de la Casa de la Cultura.
+  - 📌 *Línea de Mejora Futura*: Extender la directiva de denegación USB a los terminales de consulta pública en la Casa de la Cultura.
 - [x] **Desactivación de Autorun/Autoplay**: Deshabilitada la ejecución automática de medios extraíbles para neutralizar amenazas tipo *BadUSB*.
 
 #### 🛡️ Control de Cuentas de Usuario (UAC)
