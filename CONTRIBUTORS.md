@@ -34,7 +34,7 @@ El proyecto se estructuró inicialmente dividiendo a los integrantes en dos equi
 ### Jose Luis Oliver Herranz (Joselu/Jolu)
 **Rol Principal**: Coordinador Técnico, Arquitecto de Red & VPN, Pentester (Red Team).
 * **Arquitectura Infraestructura**: Diseño, planificación y despliegue inicial de la topología de red. Implementación y enrutamiento de túneles VPN (WireGuard) inter-sedes y teletrabajo.
-* **JSBach y Contingencia**: Desarrollo y ejecución de los scripts de recuperación de emergencia (`backupJSBACH.sh` y `restoreJSBACH.sh`) durante el desastre eléctrico, rediseñando dinámicamente la topología para garantizar alta disponibilidad. Orquestación del Portal Cautivo para el WiFi público de la biblioteca.
+* **JSBach y Contingencia**: Desarrollo y ejecución del script de recuperación de emergencia (`backupJSBach.sh`) durante el desastre eléctrico, rediseñando dinámicamente la topología para garantizar alta disponibilidad. Orquestación del Portal Cautivo para el WiFi público de la biblioteca.
 * **Red Team**: Ejecución de vectores de ataque contra dispositivos de frontera (routers JSBach). Diseño de tácticas de intrusión y movimiento lateral hacia infraestructuras adyacentes, logrando con éxito la escalada de privilegios y el establecimiento de persistencia.
 * **Blue Team / Hardening**: Despliegue de políticas estrictas de filtrado de paquetes (`iptables`), bastionado de servicios web mediante WAF (Apache ModSecurity), y apoyo a Alfonso en la finalización de las funciones de logging e integración del módulo VPN en `jsbach-logger.sh`.
 
