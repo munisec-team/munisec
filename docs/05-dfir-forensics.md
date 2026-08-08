@@ -25,7 +25,7 @@ La disciplina de Forense Digital y Respuesta a Incidentes (DFIR) permitió al eq
 
 ## 🔬 2. Análisis de Memoria con Volatility Framework
 
-* **Analistas Forenses**: **Jorge Cortés** y **Carlos Delgado**.
+* **Analistas Forenses**: **Jorge Cortés** y **Alfonso Garrido** (con apoyo en la recolección de evidencias).
 * **Metodología**: Los volcados de memoria se inspeccionaron en una estación de trabajo forense dedicada (Kali Linux) mediante **Volatility Framework**:
 
 ```bash
@@ -46,7 +46,7 @@ El sistema automatizado generó **67 reportes forenses en formato HTML**, audita
 
 ## 🚑 3. Respuesta a Incidentes y Recuperación Bare Metal (DRP)
 
-During the operational period, two major critical incidents occurred requiring immediate emergency response:
+Durante el periodo operativo ocurrieron dos incidentes críticos principales que requirieron una respuesta de emergencia inmediata:
 
 1. **Recuperación tras Corrupción de Base de Datos en Wazuh**:
    - **Incidente**: Durante las pruebas de notificaciones masivas, peticiones síncronas masivas colapsaron la API del Wazuh Manager.
