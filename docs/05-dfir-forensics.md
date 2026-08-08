@@ -25,7 +25,7 @@ La disciplina de Forense Digital y Respuesta a Incidentes (DFIR) permitió al eq
 
 ## 🔬 2. Análisis de Memoria con Volatility Framework
 
-* **Analistas Forenses**: **Jorge Cortés** y **Carlos Delgado**.
+* **Analistas Forenses**: **Jorge Cortés** y **Alfonso Garrido** (con apoyo en la recolección de evidencias).
 * **Metodología**: Los volcados de memoria se inspeccionaron en una estación de trabajo forense dedicada (Kali Linux) mediante **Volatility Framework**:
 
 ```bash
@@ -46,11 +46,11 @@ El sistema automatizado generó **67 reportes forenses en formato HTML**, audita
 
 ## 🚑 3. Respuesta a Incidentes y Recuperación Bare Metal (DRP)
 
-During the operational period, two major critical incidents occurred requiring immediate emergency response:
+Durante el periodo operativo ocurrieron dos incidentes críticos principales que requirieron una respuesta de emergencia inmediata:
 
 1. **Recuperación tras Corrupción de Base de Datos en Wazuh**:
    - **Incidente**: Durante las pruebas de notificaciones masivas, peticiones síncronas masivas colapsaron la API del Wazuh Manager.
    - **Respuesta**: **Enrique Cebrián (Kike)** ejecutó la reinstalación completa del motor de gestión y aisló el Bot de Telegram para consumir exclusivamente alertas JSON no bloqueantes.
 2. **Reconstrucción Bare Metal por Fallo Eléctrico Masivo**:
    - **Incidente**: Una caída generalizada de alimentación destruyó la configuración de los firewalls primarios pfSense.
-   - **Respuesta**: **Jose Luis Oliver** y **Enrique Cebrián** ejecutaron los scripts de contingencia `backupJSBACH.sh` y `restoreJSBACH.sh`, rediseñando dinámicamente la topología para trasladar las terminaciones VPN WireGuard a los routers Linux JSBach, minimizando el tiempo de parada (RTO).
+   - **Respuesta**: **Jose Luis Oliver** y **Enrique Cebrián** ejecutaron los procedimientos de contingencia mediante el script `backupJSBach.sh`, rediseñando dinámicamente la topología para trasladar las terminaciones VPN WireGuard a los routers Linux JSBach, minimizando el tiempo de parada (RTO).

@@ -31,11 +31,11 @@ La Zona Desmilitarizada (VLAN 2) aloja los servicios web accesibles desde el ext
 
 * **Servidor Web Principal**: Servidor Ubuntu Linux corriendo Apache HTTP Server.
 * **CMS Público (WordPress)**: Despliegue de un portal institucional para el Ayuntamiento. 
-* **Diseño de Escenario (Vulnerable by Design)**: Con el objetivo de simular un entorno realista para las pruebas del Red Team, **se expuso intencionadamente un panel de phpMyAdmin**. Adicionalmente, se plantó una tabla señuelo (`wp_pass`) que contenía las contraseñas de los usuarios en texto plano. Esta "negligencia simulada" sirvió como vector de entrada clave para que el equipo rival lograse comprometer la infraestructura inicial y simular una exfiltración de credenciales. *(La explotación y el impacto de este vector se detallan en el documento **[05. Operaciones Red Team](05-red-team.md)**).*
+* **Diseño de Escenario (Vulnerable by Design)**: Con el objetivo de simular un entorno realista para las pruebas del Red Team, **se expuso intencionadamente un panel de phpMyAdmin**. Adicionalmente, se plantó una tabla señuelo (`wp_pass`) que contenía las contraseñas de los usuarios en texto plano. Esta "negligencia simulada" sirvió como vector de entrada clave para que el equipo rival lograse comprometer la infraestructura inicial y simular una exfiltración de credenciales. *(La explotación y el impacto de este vector se detallan en el documento **[04. Operaciones Red Team y Pentesting](04-red-team-pentesting.md)**).*
 * **Seguridad y Hardening posterior**: Tras el compromiso, los fallos intencionados fueron remediados mediante el bastionado de los accesos y la instalación de plugins de seguridad específicos en el entorno de WordPress.
 
 ### 🏢 ERP / Gestión Interna
 
 * **Plataforma**: Odoo (Open Source ERP).
 * **Ubicación**: Servidor Linux en la VLAN 3 (Servidores Internos).
-* **Propósito**: Simular la gestión interna municipal y servir como servicio corporativo de alto valor. Especialmente relevante fue la implementación del **módulo de Empleados**, el cual se nutrió con las identidades ficticias de los personajes asignados a la simulación (tales como el Alcalde o los bibliotecarios, cuyas fichas y roles se detallan en el documento de **[Inteligencia y OSINT](04-osint.md)**).
+* **Propósito**: Simular la gestión interna municipal y servir como servicio corporativo de alto valor. Especialmente relevante fue la implementación del **módulo de Empleados**, el cual se nutrió con las identidades ficticias de los personajes asignados a la simulación (tales como el Alcalde o los bibliotecarios, cuyas fichas y roles se detallan en la sección de OSINT del documento **[04. Operaciones Red Team y Pentesting](04-red-team-pentesting.md#1-inteligencia-de-fuentes-abiertas-osint)**).
