@@ -29,7 +29,7 @@ Este documento consolida la cronología operativa del proyecto de ciberseguridad
 
 ### 3. Mayo 2026: Ataque, Bastionado, DFIR y Recuperación
 * **01 May - 10 May**:
-  - Desarrollo de scripts de adquisición forense de memoria RAM por **Alfonso Garrido** y **Carlos Delgado**.
+  - Desarrollo de la herramienta **Forensic Suite Dashboard** por **Alfonso Garrido** y adquisición de evidencias volátiles con **Carlos Delgado**.
   - **Desastre Físico (DRP)**: Fallo eléctrico masivo destruye los firewalls pfSense. Transición de emergencia de los túneles VPN WireGuard al router Linux JSBach mediante `backupJSBACH.sh`.
   - Despliegue de **Sysmon** en endpoints Windows y vinculación de eventos con Wazuh SIEM.
 * **11 May - 18 May (Fase Ofensiva / Red Team)**:
