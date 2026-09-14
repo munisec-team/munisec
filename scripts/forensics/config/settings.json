@@ -1,0 +1,11 @@
+{
+    "base_dir": ".",
+    "backend_dir": "backend",
+    "uploads_dir": "uploads",
+    "artifacts_dir": "artifacts",
+    "reports_dir": "reports",
+    "logs_dir": "logs",
+    "volatility_path": "volatility3",
+    "port": 5001,
+    "debug": false
+}

@@ -1,0 +1,275 @@
+#!/bin/bash
+
+######################################################################
+###  Funcions
+######################################################################
+
+fnc_copia_fitxers() {
+    ### copiant fitxers
+    ORIGEN="../"
+    DESTI="/usr/local"
+    NOM_CARPETA=JSBach
+    DESTI_FINAL="$DESTI/$NOM_CARPETA"
+
+    echo "📁 Copiant fitxers a $DESTI_FINAL..."
+
+    # Copiar carpeta
+    cp -r "$ORIGEN" "$DESTI_FINAL"
+
+    # Assegurar propietari root:root
+    chown -R root:root "$DESTI_FINAL"
+
+    echo "🔐 Ajust de permisos de $DESTI_FINAL"
+    chmod -R 755 $DESTI_FINAL
+}
+
+fnc_instala_aplicacions() {
+    ### Comprovar connexió a internet
+    echo "🔍 Comprovant connexió a internet..."
+    servidors_dns=$(resolvectl status | grep 'DNS Servers' | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}')
+
+    connexio=0
+
+    for dns in $servidors_dns; do
+        echo "Provant $dns ..."
+        if ping -c1 -W1 "$dns" > /dev/null 2>&1; then
+            connexio=1
+            echo "✅ Connexió a internet detectada"
+            break
+        fi
+    done
+
+    if [ "$connexio" -eq 0 ]; then
+        echo "❌ Error: No s'ha detectat connexió a internet. L'instal·lació d'aplicacions s'ha aturat."
+        exit 1
+    fi
+
+    ### instal·lar aplicacions
+
+    echo "⚙️ instal·lar aplicacions"
+
+    apt update
+
+    # Llista d'aplicacions a instal·lar
+    APPS="net-tools iw expect apache2 dnsmasq hostapd wireguard"
+
+    for APP in $APPS; do
+        if dpkg -s "$APP" > /dev/null 2>&1; then
+            echo "✅ $APP ja està instal·lada"
+        else
+            echo "⚙️ Instal·lant $APP..."
+            apt install -y "$APP"
+        fi
+    done
+
+    # Verificació de configuració per apache2
+    if dpkg -s apache2 > /dev/null 2>&1; then
+        echo "⚙️ Verificant configuració addicional per a apache2..."
+
+        if apache2ctl -M 2> /dev/null | grep -q cgi_module; then
+            echo "✅ El mòdul CGI ja està activat"
+        else
+            echo "⚙️ Activant mòdul CGI..."
+            a2enmod cgi
+        fi
+
+        CONF_FILE="/etc/apache2/conf-available/jsbach-cgi.conf"
+
+        read -r -d '' JSBACH_CONF <<- 'EOF'
+		ScriptAlias /cgi-bin/ /usr/local/JSBach/cgi-bin/
+
+		<Directory "/usr/local/JSBach/cgi-bin">
+			AllowOverride None
+			Options +ExecCGI -MultiViews +SymLinksIfOwnerMatch
+			Require all granted
+			AddHandler cgi-script .cgi
+		</Directory>
+		EOF
+
+        # Comprovar si el fitxer existeix i és igual
+        if [ -f "$CONF_FILE" ] && diff -q <(echo "$JSBACH_CONF") "$CONF_FILE" > /dev/null; then
+            echo "✅ Configuració Apache ja actualitzada"
+        else
+            echo "📝 Creant/Actualitzant configuració Apache per a JSBach CGI..."
+            echo "$JSBACH_CONF" > "$CONF_FILE"
+            NEED_RELOAD=1
+        fi
+
+        # Activar la conf només si cal
+        if [ ! -e /etc/apache2/conf-enabled/jsbach-cgi.conf ]; then
+            echo "✅ Activant configuració apache2..."
+            a2enconf jsbach-cgi
+            a2disconf serve-cgi-bin
+            NEED_RELOAD=1
+        fi
+
+        # Reload només si hem canviat alguna cosa
+        if [ "$NEED_RELOAD" = "1" ]; then
+            systemctl reload apache2
+        fi
+    fi
+}
+
+fnc_prepara_xarxa() {
+    ### desactivar NetworkManager
+    if systemctl list-unit-files | grep -q NetworkManager; then
+        if systemctl is-active --quiet NetworkManager; then
+            echo "✅ Aturant NetworkManager..."
+            systemctl stop NetworkManager
+        fi
+        if systemctl is-enabled --quiet NetworkManager; then
+            echo "✅ Desactivant NetworkManager..."
+            systemctl disable NetworkManager
+        fi
+    else
+        echo "ℹ️ NetworkManager no detectat, ometent..."
+    fi
+
+    # Flush i down d'interfícies (excepte lo)
+    INTERFACES=$(ls /sys/class/net 2> /dev/null | grep -v lo)
+    if [ -n "$INTERFACES" ]; then
+        echo "✅ Netejant interfícies: $(echo $INTERFACES | tr '\n' ' ')"
+        for IFACE in $INTERFACES; do
+            sudo ip addr flush dev "$IFACE"
+            sudo ip link set down "$IFACE"
+        done
+    fi
+
+    ### eliminant ipv6
+    echo "✅ Desactivant IPv6 completament del sistema"
+
+    ### 1. DESACTIVAR IPv6 AL KERNEL (sysctl)
+    SYSCTL_CONF="/etc/sysctl.conf"
+    SYSCTL_BACKUP="/etc/sysctl.conf.bak"
+
+    # Creem backup sols si no existeix el backup original
+    if [ -f "$SYSCTL_CONF" ] && [ ! -f "$SYSCTL_BACKUP" ]; then
+        cp "$SYSCTL_CONF" "$SYSCTL_BACKUP"
+        echo "✅ Còpia de seguretat de sysctl creada"
+    fi
+
+    if [ -f "$SYSCTL_CONF" ]; then
+        # Eliminar possibles entrades anteriors
+        sed -i '/disable_ipv6/d' "$SYSCTL_CONF"
+
+        # Afegir configuració IPv6 OFF
+        cat <<- EOF >> "$SYSCTL_CONF"
+
+		# Desactivar IPv6 globalment
+		net.ipv6.conf.all.disable_ipv6 = 1
+		net.ipv6.conf.default.disable_ipv6 = 1
+		net.ipv6.conf.lo.disable_ipv6 = 1
+		EOF
+
+        # Aplicar canvis
+        sysctl -p > /dev/null
+        echo "✅ IPv6 desactivat al kernel"
+    fi
+
+    echo "✅ IPv6 desactivat al DHCPCD"
+    ### 2. DESACTIVAR IPv6 A DHCPCD (si existeix)
+    DHCPCD_CONF="/etc/dhcpcd.conf"
+
+    if [[ -f "$DHCPCD_CONF" ]]; then
+
+        if [ ! -f "$DHCPCD_CONF.bak" ]; then
+            cp "$DHCPCD_CONF" "$DHCPCD_CONF.bak"
+            echo "✅ Còpia de seguretat de dhcpcd.conf creada"
+        fi
+
+        sed -i '/^ipv6/d;/^noipv6/d;/^slaac/d;/^ia_na/d;/^ia_pd/d' "$DHCPCD_CONF"
+
+        echo -e "\n# Desactivar IPv6\nnoipv6" >> "$DHCPCD_CONF"
+
+        if systemctl is-active --quiet dhcpcd; then
+            systemctl restart dhcpcd 2> /dev/null
+            echo "✅ dhcpcd reiniciat"
+        fi
+    else
+        echo "ℹ️ dhcpcd no detectat"
+    fi
+}
+
+fnc_instala_servei() {
+    ### activar JSBach
+    echo "✅ Activant JSBach..."
+
+    SERVICE_SOURCE="./jsbach_srv.service"
+    SERVICE_DEST="/etc/systemd/system/jsbach_srv.service"
+
+    if [ -f "$SERVICE_SOURCE" ]; then
+        echo "📝 Instal·lant fitxer de servei..."
+        cp "$SERVICE_SOURCE" "$SERVICE_DEST"
+        chmod 644 "$SERVICE_DEST"
+        chown root:root "$SERVICE_DEST"
+
+        # Eliminem daemon-reexec ja que normalment no cal per instal·lar un servei
+        echo "🔄 Recarregant dimoni de systemd..."
+        systemctl daemon-reload
+
+        if ! systemctl is-enabled --quiet jsbach_srv.service; then
+            echo "🔌 Habilitant servei..."
+            systemctl enable jsbach_srv.service
+        else
+            echo "ℹ️ Servei ja habilitat."
+        fi
+
+        if ! systemctl is-active --quiet jsbach_srv.service; then
+            echo "▶️ Iniciant servei..."
+            systemctl start jsbach_srv.service
+        else
+            echo "🔄 Reiniciant servei per aplicar canvis..."
+            systemctl restart jsbach_srv.service
+        fi
+
+        echo "✅ Instal·lació completada correctament"
+        echo "✅ Es recomana anar a http://127.0.0.1/cgi-bin/main.cgi i triar la targeta ifwan al menu wan"
+    else
+        echo "❌ Error: No s'ha trobat el fitxer $SERVICE_SOURCE"
+        # No sortim amb exit, deixem que flui o retornem error
+        return 1
+    fi
+}
+
+######################################################################
+###  Main
+######################################################################
+
+if [[ "$EUID" -ne 0 ]]; then
+    echo "Aquest script s'ha d'executar com a root" >&2
+    exit 1
+fi
+
+# si no hi ha arguments ho fat tot
+if [ $# -lt 1 ]; then
+    fnc_copia_fitxers
+    fnc_instala_aplicacions
+    fnc_prepara_xarxa
+    fnc_instala_servei
+    exit 1
+fi
+
+OPCIO_1=$1
+shift
+
+# Fem switch per executar la funció que toca
+case "$OPCIO_1" in
+    -f)
+        fnc_copia_fitxers
+        ;;
+    -a)
+        fnc_instala_aplicacions
+        ;;
+    -x)
+        fnc_prepara_xarxa
+        ;;
+    -s)
+        fnc_instala_servei
+        ;;
+    *)
+        echo "-f sols instal·la els fitxer"
+        echo "-a sols instal·la les aplicacion amb apt"
+        echo "-x sols prepara els parametres de xarxa i elimina ipv6"
+        echo "-s sols instal·la i arranca el servei jsbach_srv"
+        ;;
+esac

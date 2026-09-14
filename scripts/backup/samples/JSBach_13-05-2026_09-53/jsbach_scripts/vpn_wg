@@ -1,0 +1,565 @@
+#!/bin/bash
+
+source /usr/local/JSBach/conf/variables.conf
+source $DIR/$DIR_PROJECTE/$DIR_SCRIPTS/$FUNCIONS
+source "$DIR/$DIR_PROJECTE/$DIR_CONF/$VPN_WG_CONF"
+source /usr/local/bin/jsbach-logger.sh
+
+######################################################################
+###  Funcions
+######################################################################
+
+fnc_iniciar() {
+    
+    if [[ $(fnc_estat_router) =~ ^$ACTIVAT ]]; then
+        echo "VPN routers ja esta iniciada."
+	log_action "VPN-ROUTER" "INICIAR" "SE HA INTENTADO INICIAR LA VPN CUANDO YA ESTABA INICIADA" "WARNING"
+    else
+        echo "Iniciant VPN routers"
+        fnc_crear_config_routers
+	log_action "VPN-ROUTER" "INICIAR" "SE HA INICIADO LA VPN DE ROUTERS"
+    fi
+
+    if [[ $(fnc_estat_usuari) =~ ^$ACTIVAT ]]; then
+        echo "VPN users ja esta iniciada."
+	log_action "VPN-USUARIO" "INICIAR" "SE HA INTENTADO INICIAR LA VPN CUANDO YA ESTABA INICIADA" "WARNING"
+    else
+        echo "Iniciant VPN users"
+        fnc_crear_config_usuaris
+	log_action "VPN-USUARIO" "INICIAR" "SE HA INICIADO LA VPN DE USUARIOS"
+    fi
+    sed -i 's/^vpn_wg;.*/vpn_wg;ACTIVAT/' $DIR/$DIR_PROJECTE/$DIR_CONF/$SERVEIS
+}
+
+fnc_aturar() {
+
+    if [[ $(fnc_estat_router) =~ ^$DESACTIVAT ]]; then
+        echo "VPN routers no esta iniciada."
+	log_action "VPN-ROUTER" "PARAR" "SE HA INTENTADO DETENER LA VPN CUANDO YA ESTABA PARADA" "WARNING"
+    else
+        echo "Aturant VPN routers"
+        wg-quick down $vpn_wg_int_router
+	log_action "VPN-ROUTER" "PARAR" "SE HA DETENIDO LA VPN DE ROUTERS"
+    fi
+
+    if [[ $(fnc_estat_usuari) =~ ^$DESACTIVAT ]]; then
+        echo "VPN users no esta iniciada."
+	log_action "VPN-USUARIO" "PARAR" "SE HA INTENTADO DETENER LA VPN CUANDO YA ESTABA PARADA" "WARNING"
+    else
+        echo "Aturant VPN users"
+        wg-quick down $vpn_wg_int_users
+	log_action "VPN-USUARIO" "PARAR" "SE HA DETENIDO LA VPN DE USUARIOS"
+    fi
+    sed -i 's/^vpn_wg;.*/vpn_wg;DESACTIVAT/' $DIR/$DIR_PROJECTE/$DIR_CONF/$SERVEIS
+}
+
+######################################################################
+### vpn routers
+######################################################################
+
+fnc_crear_config_routers() {
+
+    if [ -z $vpn_wg_routers_public_key ] || [ -z $vpn_wg_routers_private_key ]; then
+        wg genkey | tee "$DIR/$DIR_PROJECTE/$DIR_CONF/privatekey" | wg pubkey | tee "$DIR/$DIR_PROJECTE/$DIR_CONF/publickey" > /dev/null
+        PRIVATE_KEY=$(cat "$DIR/$DIR_PROJECTE/$DIR_CONF/privatekey")
+        PUBLIC_KEY=$(cat "$DIR/$DIR_PROJECTE/$DIR_CONF/publickey")
+
+        vpn_wg_routers_private_key=$(printf '%s\n' "$PRIVATE_KEY" | sed 's/[&/\]/\\&/g')
+        vpn_wg_routers_public_key=$(printf '%s\n' "$PUBLIC_KEY" | sed 's/[&/\]/\\&/g')
+
+        sed -i "s|^vpn_wg_routers_public_key=.*|vpn_wg_routers_public_key=$vpn_wg_routers_public_key|" "$DIR/$DIR_PROJECTE/$DIR_CONF/$VPN_WG_CONF"
+        sed -i "s|^vpn_wg_routers_private_key=.*|vpn_wg_routers_private_key=$vpn_wg_routers_private_key|" "$DIR/$DIR_PROJECTE/$DIR_CONF/$VPN_WG_CONF"
+
+        echo "Generant claus per routers, clau publica $vpn_wg_routers_public_key i clau privada $vpn_wg_routers_private_key"
+    fi
+    fitxer_conf="$vpn_wg_routers_fitxer_conf"
+
+    (
+        source $DIR/$DIR_PROJECTE/$DIR_CONF/$IFWAN_CONF
+        echo "[Interface]"
+        echo "Address = $vpn_wg_ip_router/$vpn_wg_ip_routers_mascara"
+        echo "PrivateKey = $vpn_wg_routers_private_key"
+        echo "ListenPort = $vpn_wg_port_router"
+
+    ) > "$fitxer_conf"
+ 
+    for LINIA in $(grep -v "^#" "$DIR/$DIR_PROJECTE/$DIR_CONF/$VPN_WG_ROUTERS"); do
+        ROUTER_IP_PUBLICA=$(echo "$LINIA" | cut -d ";" -f 1)
+        ROUTER_IP_PRIVADA=$(echo "$LINIA" | cut -d ";" -f 2)
+        ROUTER_PUBLIC_KEY=$(echo "$LINIA" | cut -d ";" -f 3)
+        ROUTER_PRIVATE_KEY=$(echo "$LINIA" | cut -d ";" -f 4)
+        ROUTER_RUTES=$(echo "$LINIA" | cut -d ";" -f 5)
+
+        (
+            echo "[Peer]"
+            echo "PublicKey = $ROUTER_PUBLIC_KEY"
+            echo "Endpoint = $ROUTER_IP_PUBLICA:$vpn_wg_port_router"
+            echo "AllowedIPs = $ROUTER_IP_PRIVADA/$vpn_wg_ip_routers_mascara,$ROUTER_RUTES"
+            echo "PersistentKeepalive = 25"
+        ) >> "$fitxer_conf"
+
+    done
+
+    wg-quick up $vpn_wg_int_router
+    log_action "VPN-ROUTERS" "CONFIG" "SE HA CREADO LA CONFIGURADO LA VPN DE LA SIGUIENTE MANERA:
+    	[Interface]
+    	Address= $vpn_wg_ip_router/$vpn_wg_ip_routers_mascara
+	PrivateKey = $vpn_wg_routers_private_key
+	ListenPort = $vpn_wg_port_router
+	
+	[Peer]
+	PublicKey = $ROUTER_PUBLIC_KEY
+	Endpoint = $ROUTER_IP_PUBLICA:$vpn_wg_port_router
+	AllowedIPs = $ROUTER_IP_PRIVADA/$vpn_wg_ip_routers_mascara,$ROUTER_RUTES
+	PersistentKeepalive = 25"
+
+}
+
+fnc_afegir_router() {
+    ROUTER_IP_PUBLICA=$1
+    RUTES=$2
+
+    if ! fnc_validar_ip "$ROUTER_IP_PUBLICA"; then
+        echo "No es una IP valida."
+	log_action "VPN-ROUTERS" "CONFIG" "SE HA INTENTADO AÑADIR UN ROUTER CON UNA IP INVÁLIDA: [$ROUTER_IP_PUBLICA]" "WARNING"
+        exit 1
+    fi
+
+    if grep -q "$ROUTER_IP_PUBLICA;" "$DIR/$DIR_PROJECTE/$DIR_CONF/$VPN_WG_ROUTERS"; then
+        echo "Ja existeix l'IP de router."
+	log_action "VPN-ROUTERS" "CONFIG" "SE HA INTENTADO AÑADIR UN ROUTER CON UNA IP YA EXISTENTE: [$ROUTER_IP_PUBLICA]" "WARNING"
+        exit 1
+    fi
+
+    wg genkey | tee "$DIR/$DIR_PROJECTE/$DIR_CONF/privatekey" | wg pubkey | tee "$DIR/$DIR_PROJECTE/$DIR_CONF/publickey" > /dev/null
+    PRIVATE_KEY=$(cat "$DIR/$DIR_PROJECTE/$DIR_CONF/privatekey")
+    PUBLIC_KEY=$(cat "$DIR/$DIR_PROJECTE/$DIR_CONF/publickey")
+
+    IP_LLIURE=$(fnc_busca_ip_lliure "$vpn_wg_ip_router" "$DIR/$DIR_PROJECTE/$DIR_CONF/$VPN_WG_ROUTERS")
+    if [ -z "${IP_LLIURE}" ]; then
+        echo "No hi ha IPs lliures."
+        exit 1
+    fi
+
+    echo "$ROUTER_IP_PUBLICA;$IP_LLIURE;$PUBLIC_KEY;$PRIVATE_KEY;$RUTES" >> "$DIR/$DIR_PROJECTE/$DIR_CONF/$VPN_WG_ROUTERS"
+    log_action "VPN-ROUTERS" "CONFIG" "SE HA AÑADIDO UN NUEVO ROUTER A LA CONFIG"
+
+}
+
+fnc_eliminar_router() {
+
+    IP_ROUTER_PUBLICA=$1
+    if [ -z "$IP_ROUTER_PUBLICA" ]; then
+        echo "No hi ha IP de router."
+	log_action "VPN-ROUTERS" "CONFIG" "SE HA INTENTADO ELIMINAR UN ROUTER SIN ESPECIFICAR IP" "WARNING"
+        exit 1
+    fi
+
+    if ! grep -q "$IP_ROUTER_PUBLICA;" "$DIR/$DIR_PROJECTE/$DIR_CONF/$VPN_WG_ROUTERS"; then
+        echo "No existeix l'IP de router."
+	log_action "VPN-ROUTERS" "CONFIG" "SE HA INTENTADO ELIMINAR UN ROUTER CON UNA IP INEXISTENTE: [$IP_ROUTER_PUBLICA]" "WARNING"
+        exit 1
+    fi
+
+    sed -i "/$IP_ROUTER_PUBLICA;/d" "$DIR/$DIR_PROJECTE/$DIR_CONF/$VPN_WG_ROUTERS"
+    log_action "VPN-ROUTERS" "CONFIG" "SE HA ELIMINADO EL ROUTER CON IP [$IP_ROUTER_PUBLICA] CORRECTAMENTE"
+}
+
+fnc_mostrar_config_router() {
+
+    IP_ROUTER_PUBLICA=$1
+
+    if [ -z "$IP_ROUTER_PUBLICA" ]; then
+        echo "No hi ha IP de router."
+	log_action "VPN-ROUTERS" "CONFIG" "SE HA INTENTADO MOSTRAR LA CONFIG DE UN ROUTER SIN ESPECIFICAR IP" "WARNING"
+        exit 1
+    fi
+
+    if ! grep -q "$IP_ROUTER_PUBLICA;" "$DIR/$DIR_PROJECTE/$DIR_CONF/$VPN_WG_ROUTERS"; then
+        echo "No existeix l'IP de router."
+	log_action "VPN-ROUTERS" "CONFIG" "SE HA INTENTADO MOSTRAR LA CONFIG DE UN ROUTER CON IP INEXISTENTE: [$IP_ROUTER_PUBLICA]" "WARNING"
+        exit 1
+    fi
+
+    for linia in $(grep "$IP_ROUTER_PUBLICA;" "$DIR/$DIR_PROJECTE/$DIR_CONF/$VPN_WG_ROUTERS"); do
+        ROUTER_IP_PUBLICA=$(echo "$linia" | cut -d ";" -f 1)
+        ROUTER_IP_PRIVADA=$(echo "$linia" | cut -d ";" -f 2)
+        ROUTER_PUBLIC_KEY=$(echo "$linia" | cut -d ";" -f 3)
+        ROUTER_PRIVATE_KEY=$(echo "$linia" | cut -d ";" -f 4)
+        source "$DIR/$DIR_PROJECTE/$DIR_CONF/$IFWAN_CONF"
+        IP_ROUTER_A=$(ip -o -4 addr show dev $IFW_IFWAN | awk '{print $4}' | cut -d/ -f1)
+        
+        
+        echo "[Interface]"
+        echo "Address = $ROUTER_IP_PRIVADA/$vpn_wg_ip_routers_mascara"
+        echo "PrivateKey = $ROUTER_PRIVATE_KEY"
+        echo "ListenPort = $vpn_wg_port_router"
+
+        echo "[Peer]"
+        echo "PublicKey = $vpn_wg_routers_public_key"
+        echo "Endpoint = $IP_ROUTER_A:$vpn_wg_port_router"
+        echo "AllowedIPs = $vpn_wg_ip_router/32,${vpn_wg_routers_allowed_ips%,}"
+        echo "PersistentKeepalive = 25"
+    	
+	log_action "VPN-ROUTERS" "CONFIG" "SE HA MOSTRADO LA CONFIGURACIÓN DE LA VPN:
+    		[Interface]
+	    	Address= $vpn_wg_ip_router/$vpn_wg_ip_routers_mascara
+		PrivateKey = $vpn_wg_routers_private_key
+		ListenPort = $vpn_wg_port_router
+	
+		[Peer]
+		PublicKey = $ROUTER_PUBLIC_KEY
+		Endpoint = $ROUTER_IP_PUBLICA:$vpn_wg_port_router
+		AllowedIPs = $ROUTER_IP_PRIVADA/$vpn_wg_ip_routers_mascara,$ROUTER_RUTES
+		PersistentKeepalive = 25"
+
+    done
+}
+
+######################################################################
+### vpn users
+######################################################################
+
+fnc_crear_config_usuaris() {
+
+    if [ -z $vpn_wg_users_public_key ] || [ -z $vpn_wg_users_private_key ]; then
+        wg genkey | tee "$DIR/$DIR_PROJECTE/$DIR_CONF/privatekey" | wg pubkey | tee "$DIR/$DIR_PROJECTE/$DIR_CONF/publickey" > /dev/null
+        PRIVATE_KEY=$(cat "$DIR/$DIR_PROJECTE/$DIR_CONF/privatekey")
+        PUBLIC_KEY=$(cat "$DIR/$DIR_PROJECTE/$DIR_CONF/publickey")
+        echo "Creant claus per users, clau publica $PUBLIC_KEY i clau privada $PRIVATE_KEY"
+
+        vpn_wg_users_private_key=$(printf '%s\n' "$PRIVATE_KEY" | sed 's/[&/\]/\\&/g')
+        vpn_wg_users_public_key=$(printf '%s\n' "$PUBLIC_KEY" | sed 's/[&/\]/\\&/g')
+
+        sed -i "s|^vpn_wg_users_public_key=.*|vpn_wg_users_public_key=$vpn_wg_users_public_key|" "$DIR/$DIR_PROJECTE/$DIR_CONF/$VPN_WG_CONF"
+        sed -i "s|^vpn_wg_users_private_key=.*|vpn_wg_users_private_key=$vpn_wg_users_private_key|" "$DIR/$DIR_PROJECTE/$DIR_CONF/$VPN_WG_CONF"
+    fi
+
+    fitxer_conf="$vpn_wg_users_fitxer_conf"
+    (
+        source $DIR/$DIR_PROJECTE/$DIR_CONF/$IFWAN_CONF
+        echo "[Interface]"
+        echo "Address = $vpn_wg_ip_users/$vpn_wg_ip_users_mascara"
+        echo "PrivateKey = $vpn_wg_users_private_key"
+        echo "ListenPort = $vpn_wg_port_users"
+
+    ) > "$fitxer_conf"
+
+    for LINIA in $(grep -v "^#" "$DIR/$DIR_PROJECTE/$DIR_CONF/$VPN_WG_USUARIS"); do
+        NOM_USUARI=$(echo "$LINIA" | cut -d ";" -f 1)
+        USUARI_IP_PRIVADA=$(echo "$LINIA" | cut -d ";" -f 2)
+        USUARI_PUBLIC_KEY=$(echo "$LINIA" | cut -d ";" -f 3)
+        (
+            echo "# $NOM_USUARI"
+            echo "[Peer]"
+            echo "PublicKey = $USUARI_PUBLIC_KEY"
+            echo "AllowedIPs = $USUARI_IP_PRIVADA/32"
+        ) >> "$fitxer_conf"
+    done
+
+    wg-quick up $vpn_wg_int_users
+	log_action "VPN-USUARIOS" "CONFIG" "SE HA CREADO LA SIGUIENTE CONFIGURACIÓN DE LA VPN:
+    		[Interface]
+	    	Address= $vpn_wg_ip_users/$vpn_wg_ip_users_mascara
+		PrivateKey = $vpn_wg_users_private_key
+		ListenPort = $vpn_wg_port_users
+	
+		# $NOM_USUARI
+		[Peer]
+		PublicKey = $USUARI_PUBLIC_KEY
+		AllowedIPs = $usuari_IP_PRIVADA/32"
+
+}
+
+fnc_afegir_usuari() {
+    NOM_USUARI=$1
+
+    if ! fnc_nom_alfanumeric "$NOM_USUARI"; then
+        echo "No es un nom valid."
+	log_action "VPN-USUARIOS" "CONFIG" "SE HA INTENTADO CREAR UN USUARIO CON UN NOMBRE INVÁLIDO: [$NOM_USUARI]" "WARNING"
+        exit 1
+    fi
+
+    if grep -q "$NOM_USUARI;" "$DIR/$DIR_PROJECTE/$DIR_CONF/$VPN_WG_USUARIS"; then
+        echo "Ja existeix l'usuari $NOM_USUARI."
+	log_action "VPN-USUARIOS" "CONFIG" "SE HA INTENTADO CREAR UN USUARIO YA EXISTENTE: [$NOM_USUARI]" "WARNING"
+        exit 1
+    fi
+
+    wg genkey | tee "$DIR/$DIR_PROJECTE/$DIR_CONF/privatekey" | wg pubkey | tee "$DIR/$DIR_PROJECTE/$DIR_CONF/publickey" > /dev/null
+    PRIVATE_KEY=$(cat "$DIR/$DIR_PROJECTE/$DIR_CONF/privatekey")
+    PUBLIC_KEY=$(cat "$DIR/$DIR_PROJECTE/$DIR_CONF/publickey")
+
+    IP_LLIURE=$(fnc_busca_ip_lliure "$vpn_wg_ip_users" "$DIR/$DIR_PROJECTE/$DIR_CONF/$VPN_WG_USUARIS")
+    if [ -z "${IP_LLIURE}" ]; then
+        echo "No hi ha IPs lliures."
+        exit 1
+    fi
+
+    echo "$NOM_USUARI;$IP_LLIURE;$PUBLIC_KEY;$PRIVATE_KEY" >> "$DIR/$DIR_PROJECTE/$DIR_CONF/$VPN_WG_USUARIS"
+    echo "Usuari afegit: $NOM_USUARI $IP_LLIURE $PUBLIC_KEY $PRIVATE_KEY"
+    log_action "VPN-USUARIOS" "CONFIG" "SE HA CREADO CORRECTAMENTE UN USUARIO: [$NOM_USUARI]"
+}
+
+fnc_eliminar_usuari() {
+
+    NOM_USUARI=$1
+    if [ -z "$NOM_USUARI" ]; then
+        echo "No hi ha IP d'usuari."
+	log_action "VPN-USUARIOS" "CONFIG" "SE HA INTENTADO ELIMINAR UN USUARIO SIN ESPECIFICAR" "WARNING"
+        exit 1
+    fi
+
+    if ! grep -q "$NOM_USUARI;" "$DIR/$DIR_PROJECTE/$DIR_CONF/$VPN_WG_USUARIS"; then
+        echo "No existeix l'IP d'usuari."
+	log_action "VPN-USUARIOS" "CONFIG" "SE HA INTENTADO ELIMINAR UN USUARIO INEXISTENTE: [$NOM_USUARI]"
+        exit 1
+    fi
+
+    sed -i "/$NOM_USUARI;/d" "$DIR/$DIR_PROJECTE/$DIR_CONF/$VPN_WG_USUARIS"
+    log_action "VPN-USUARIOS" "CONFIG" "SE HA ELIMINADO CORRECTAMENTE UN USUARIO: [$NOM_USUARI]"
+}
+
+fnc_mostrar_config_usuari() {
+
+    NOM_USUARI=$1
+
+    if ! fnc_nom_alfanumeric "$NOM_USUARI"; then
+        echo "No es un nom valid."
+        exit 1
+    fi
+
+    if ! grep -q "$NOM_USUARI;" "$DIR/$DIR_PROJECTE/$DIR_CONF/$VPN_WG_USUARIS"; then
+        echo "No existeix l'usuari $NOM_USUARI."
+        exit 1
+    fi
+
+    for linia in $(grep "$NOM_USUARI;" "$DIR/$DIR_PROJECTE/$DIR_CONF/$VPN_WG_USUARIS"); do
+        NOM_USUARI=$(echo "$linia" | cut -d ";" -f 1)
+        USUARI_IP_PRIVADA=$(echo "$linia" | cut -d ";" -f 2)
+        USUARI_PUBLIC_KEY=$(echo "$linia" | cut -d ";" -f 3)
+        USUARI_PRIVATE_KEY=$(echo "$linia" | cut -d ";" -f 4)
+        source "$DIR/$DIR_PROJECTE/$DIR_CONF/$IFWAN_CONF"
+        IP_ROUTER_A=$(ip -o -4 addr show dev $IFW_IFWAN | awk '{print $4}' | cut -d/ -f1)
+
+        echo "[Interface]"
+        echo "Address = $USUARI_IP_PRIVADA/$vpn_wg_ip_users_mascara"
+        echo "PrivateKey = $USUARI_PRIVATE_KEY"
+        echo "ListenPort = $vpn_wg_port_users"
+
+        echo "[Peer]"
+        echo "PublicKey = $vpn_wg_users_public_key"
+        echo "Endpoint = $IP_ROUTER_A:$vpn_wg_port_users"
+        echo "AllowedIPs = $vpn_wg_ip_users/32,${vpn_wg_users_allowed_ips%,}"
+        echo "PersistentKeepalive = 25"
+	log_action "VPN-USUARIOS" "CONFIG" "SE HA MOSTRADO LA SIGUIENTE CONFIGURACIÓN DE LA VPN:
+    		[Interface]
+	    	Address= $USUARI_IP_PRIVADA/$vpn_wg_ip_users_mascara
+		PrivateKey = $USUARI_PRIVATE_KEY
+		ListenPort = $vpn_wg_port_users
+	
+		[Peer]
+		PublicKey = $USUARI_PUBLIC_KEY
+		Endpoint = $IP_ROUTER_A:$vpn_wg_port_users
+		AllowedIPs = $vpn_wg_ip_users/32,${vpn_wg_users_allowed_ips%,}
+		PersistentKeepalive = 25"
+
+    done
+}
+
+fnc_busca_ip_lliure() {
+    IP_LLIURE=""
+    IP_BASE="${1%.*}."
+    IP_FITXER=$2
+    for i in $(seq 2 254); do
+        IP="${IP_BASE}${i}"
+        if ! grep -q "${IP};" "$IP_FITXER"; then
+            IP_LLIURE="${IP}"
+            echo "$IP_LLIURE"
+            break
+        fi
+    done
+
+    if [ -z "${IP_LLIURE}" ]; then
+        echo ""
+        exit 1
+    fi
+}
+
+fnc_llista_routers() {
+    cat "$DIR/$DIR_PROJECTE/$DIR_CONF/$VPN_WG_ROUTERS" | grep -v "^#"
+}
+
+fnc_llista_usuaris() {
+    cat "$DIR/$DIR_PROJECTE/$DIR_CONF/$VPN_WG_USUARIS" | grep -v "^#"
+}
+
+fnc_modificar_lans_router() {
+    sed -i "s|^vpn_wg_routers_allowed_ips=.*|vpn_wg_routers_allowed_ips=$1|" "$DIR/$DIR_PROJECTE/$DIR_CONF/$VPN_WG_CONF"
+    echo "modificar_lans_router"
+    log_action "VPN-ROUTERS" "CONFIG" "SE HA MODIFICADO LAS LANS DEL ROUTER: [$1]"
+}
+
+fnc_modificar_lans_usuari() {
+    sed -i "s|^vpn_wg_users_allowed_ips=.*|vpn_wg_users_allowed_ips=$1|" "$DIR/$DIR_PROJECTE/$DIR_CONF/$VPN_WG_CONF"
+    echo "modificar_lans_usuari"
+    log_action "VPN-USUARIOS" "CONFIG" "SE HA MODIFICADO LAS LANS DE USUARIOS: [$1]"
+}
+
+fnc_canviar_mode() {
+    sed -i "s|^VPN_WG_MODE=.*|VPN_WG_MODE=$1|" "$DIR/$DIR_PROJECTE/$DIR_CONF/$VPN_WG_CONF"
+    echo "canviar_mode"
+    log_action "VPN" "CONFIG" "SE HA CAMBIADO EL MODO DEL ROUTER A: [$1]"
+}
+
+#######################################################################
+
+fnc_configurar() {
+    OPCIO_1=$1
+    shift
+
+    case "$OPCIO_1" in
+        afegir_router)
+            fnc_afegir_router $@
+            ;;
+        eliminar_router)
+            fnc_eliminar_router $@
+            ;;
+        afegir_usuari)
+            fnc_afegir_usuari $@
+            ;;
+        eliminar_usuari)
+            fnc_eliminar_usuari $@
+            ;;
+        modificar_lans_router)
+            fnc_modificar_lans_router $@
+            ;;
+        modificar_lans_usuari)
+            fnc_modificar_lans_usuari $@
+            ;;
+        canviar_mode)
+            fnc_canviar_mode $@
+            ;;
+        *)
+            echo "Error falta [afegir_router, eliminar_router, afegir_usuari, eliminar_usuari, canviar_mode]"
+            ;;
+    esac
+
+}
+
+fnc_mostrar() {
+    OPCIO_1=$1
+    shift
+
+    case "$OPCIO_1" in
+        llista_lans)
+            echo "$(fnc_buscar_Lans | grep -v '#')"
+            ;;
+        llista_routers)
+            fnc_llista_routers $@
+            ;;
+        config_router)
+            fnc_mostrar_config_router $@
+            ;;
+        config_int_router)
+            cat $vpn_wg_routers_fitxer_conf
+            ;;
+        llista_usuaris)
+            fnc_llista_usuaris $@
+            ;;
+        config_usuari)
+            fnc_mostrar_config_usuari $@
+            ;;
+        config_int_usuari)
+            cat $vpn_wg_users_fitxer_conf
+            ;;
+        mode)
+            echo "$VPN_WG_MODE"
+            ;;
+        *)
+            echo "Error falta [llista_routers, config_router, config_int_router, llista_usuaris, config_usuari,config_int_usuari]"
+            ;;
+    esac
+}
+
+fnc_estat() {
+
+    OPCIO_1=$1
+    shift
+    case "$OPCIO_1" in
+        "" | "tot")
+            fnc_estat_router
+            echo ""
+            fnc_estat_usuari
+            log_action "VPN" "ESTADO" "SE HA MOSTRADO EL ESTADO DE LAS VPNs"
+	    ;;
+        router)
+            fnc_estat_router
+	    log_action "VPN-ROUTER" "ESTADO" "SE HA MOSTRADO EL ESTADO DE LAS VPNs ROUTER"
+            ;;
+        users)
+            fnc_estat_usuari
+	    log_action "VPN-USUARIOS" "ESTADO" "SE HA MOSTRADO EL ESTADO DE LAS VPNs USUARIO"
+            ;;
+        *)
+            echo "Error falta [router, users]"
+            ;;
+    esac
+}
+
+fnc_estat_router() {
+    if ip a l | grep "$vpn_wg_int_router" | grep -q "UP"; then
+        echo "$ACTIVAT  vpn routers"
+        echo ""
+        ip a l dev $vpn_wg_int_router
+    else
+        echo "$DESACTIVAT  vpn routers"
+    fi
+}
+
+fnc_estat_usuari() {
+    if ip a l | grep "$vpn_wg_int_users" | grep -q "UP"; then
+        echo "$ACTIVAT  vpn users"
+        echo ""
+        ip a l dev $vpn_wg_int_users
+    else
+        echo "$DESACTIVAT  vpn users"
+    fi
+}
+
+######################################################################
+###  MAIN
+######################################################################
+
+MSG="falta [iniciar, aturar, configurar ,estat]"
+
+# Comprovem que hi hagi almenys un argument (la opció)
+if [ $# -lt 1 ]; then
+    echo "$MSG"
+    exit 1
+fi
+
+OPCIO_1=$1
+shift
+
+# Fem switch per executar la funció que toca
+case "$OPCIO_1" in
+    iniciar)
+        fnc_iniciar $@
+        ;;
+    aturar)
+        fnc_aturar $@
+        ;;
+    configurar)
+        fnc_configurar $@
+        ;;
+    mostrar)
+        fnc_mostrar $@
+        ;;
+    estat)
+        fnc_estat $@
+        ;;
+    *)
+        echo "$MSG"
+        ;;
+esac

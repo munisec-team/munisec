@@ -1,0 +1,570 @@
+#!/bin/bash
+
+source /usr/local/bin/jsbach-logger.sh
+source /usr/local/JSBach/conf/variables.conf
+source $DIR/$DIR_PROJECTE/$DIR_CONF/$IFWAN_CONF
+source $DIR/$DIR_PROJECTE/$DIR_SCRIPTS/$FUNCIONS
+
+######################################################################
+###  Funcions
+######################################################################
+
+fnc_netejar_fitxer_conf() {
+    sed -i "/^${IFW_IFWAN};/d" "$DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_IF"
+    Llista_IF=$(fnc_interfaces_ethernet | grep -vF "$IFW_IFWAN")
+
+    for LINIA in $(cat "$DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_IF" | grep -v '^#'); do
+        NOM_IF=$(echo "$LINIA" | cut -d';' -f1)
+        if ! echo "$Llista_IF" | grep -qx "$NOM_IF"; then
+            sed -i "/^${NOM_IF};/d" "$DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_IF"
+        fi
+    done
+}
+
+fnc_iniciar() {
+    log_action "BRIDGE" "INICIADO" "SE HA INICIADO EL BRIDGE"
+    fnc_netejar_fitxer_conf
+
+    ESTAT=$(fnc_estat)
+    if [[ "$ESTAT" == $ACTIVAT* ]]; then
+        echo "Ja esta activat"
+        exit 1
+    fi
+
+    ###################################################
+    ##CREAR  BRIDGE part interna
+    ###################################################
+    ip l a name br0 type bridge vlan_filtering 1
+    ip l s dev br0 up
+
+    for LINIA in $(cat "$DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_CONF" | grep -v '^#'); do
+        VLANID=$(echo "$LINIA" | cut -d';' -f2)
+        VLANIP=$(echo "$LINIA" | cut -d';' -f4)
+        ip l a l br0 name br0.$VLANID type vlan id $VLANID
+        ip l s dev br0.$VLANID up
+        ip a a dev br0.$VLANID $VLANIP
+    done
+
+    #################################################
+    #Bridge part LAN
+    #################################################
+    bridge vlan del dev br0 vid 1 pvid untagged self
+    for LINIA in $(cat "$DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_IF" | grep -v '^#'); do
+        NOM_IF=$(echo "$LINIA" | cut -d';' -f1)
+        VLAN_UNTAG=$(echo "$LINIA" | cut -d';' -f2)
+        VLAN_TAG=$(echo "$LINIA" | cut -d';' -f3)
+        ip l s dev $NOM_IF master br0
+        ip l s dev $NOM_IF up
+        bridge vlan del dev $NOM_IF vid 1 pvid untagged
+        if [ "$VLAN_UNTAG" != "0" ]; then
+            bridge vlan add dev $NOM_IF vid $VLAN_UNTAG pvid untagged
+            bridge vlan add dev br0 vid $VLAN_UNTAG self
+        fi
+        if [ "$VLAN_TAG" != "0" ]; then
+            for CAMP in ${VLAN_TAG//,/ }; do
+                bridge vlan add dev $NOM_IF vid $CAMP
+                bridge vlan add dev br0 vid $CAMP self
+            done
+        fi
+    done
+
+    #################################################
+    #Ebtables
+    #################################################
+    fnc_ebtables_iniciar
+
+    #################################################
+    #Final
+    #################################################
+    echo "bridge, ebtables & vlans iniciades"
+    
+    sed -i 's/^bridge;.*/bridge;ACTIVAT/' $DIR/$DIR_PROJECTE/$DIR_CONF/$SERVEIS
+   
+}
+
+fnc_aturar() {
+    log_action "BRIDGE" "PARADO" "SE HA PARADO EL BRIDGE"
+    ESTAT=$(fnc_estat)
+    if [[ "$ESTAT" == $DESACTIVAT* ]]; then
+        echo "Ja esta desactivat"
+        exit 1
+    fi
+
+    fnc_ebtables_aturar
+
+    ip l d dev br0
+    for LINIA in $(cat "$DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_IF" | grep -v '^#'); do
+        NOM_IF=$(echo "$LINIA" | cut -d';' -f1)
+        ip l s dev $NOM_IF down
+    done
+
+    echo "bridge, ebtables & vlans aturades"
+
+    sed -i 's/^bridge;.*/bridge;DESACTIVAT/' $DIR/$DIR_PROJECTE/$DIR_CONF/$SERVEIS
+}
+
+fnc_ebtables_iniciar() {
+    log_action "EBTABLES" "INICIAR" "SE HA INICIADO EBTABLES"
+    ebtables -F
+    ebtables -X
+    ebtables -Z
+
+    #######################################################
+    ### Crear cadenes FORWARD_VLANID i paquets tagged
+    #######################################################
+
+    for LINIA in $(cat "$DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_CONF" | grep -v '^#'); do
+        VLANNOM=$(echo "$LINIA" | cut -d';' -f1)
+        VLANID=$(echo "$LINIA" | cut -d';' -f2)
+        ebtables -N FORWARD_$VLANNOM
+        ebtables -A FORWARD -p 802_1Q --vlan-id $VLANID -j FORWARD_$VLANNOM
+    done
+
+    #######################################################
+    ### paquets untagged
+    #######################################################
+
+    for LINIA in $(cat "$DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_CONF" | grep -v '^#'); do
+        VLANNOM=$(echo "$LINIA" | cut -d';' -f1)
+        VLANID=$(echo "$LINIA" | cut -d';' -f2)
+        for LINIA in $(cat "$DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_IF" | grep -v '^#' | grep ";$VLANID;"); do
+            VLAN_IF=$(echo "$LINIA" | cut -d';' -f1)
+            ebtables -A FORWARD -i $VLAN_IF -j FORWARD_$VLANNOM
+        done
+    done
+
+    #######################################################
+    ### Cadena macs admin
+    #######################################################
+
+    fnc_ebtables_cadena_macs_admin
+
+}
+
+fnc_ebtables_aturar() {
+    log_action "EBTABLES" "PARADO" "SE HA PARADO EBTABLES"
+    ebtables -F
+    ebtables -X
+    ebtables -Z
+}
+
+fnc_ebtables_aillar() {
+    if [ $# -lt 1 ]; then
+	log_action "EBTABLES" "AISLAR" "SE HA INTENTADO AISLAR UNA VLAN QUE NO EXISTE"
+        echo "falta  id de la vlan"
+        exit
+    fi
+
+    if ! $(fnc_validar_vlan_id $1) || ! $(fnc_existeix_vlan_id $1); then
+        log_action "EBTABLES" "AISLAR" "SE HA INTENTADO AISLAR LA VLAN CON ID $1"
+	echo " vlan id $1 no valida o no existeix"
+        exit
+    fi
+
+    VLANNOM=$(cat "$DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_CONF" | grep ";$1;" | cut -d';' -f1)
+    ebtables -F FORWARD_$VLANNOM
+    ebtables -A FORWARD_$VLANNOM -o $IFW_IFWAN -j ACCEPT
+    for LINIA in $(cat "$DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_IF" | grep -v '^#' | grep ";$1;"); do
+        VLAN_IF=$(echo "$LINIA" | cut -d';' -f1)
+        ebtables -A FORWARD_$VLANNOM -o $VLAN_IF -j DROP
+    done
+    log_action "EBTABLES" "AISLAR" "SE HA AISLADO LA VLAN CON NOMBRE $VLANNOM"
+    echo "ebtables ailla $VLANNOM"
+}
+
+fnc_ebtables_desaillar() {
+    
+    if [ $# -lt 1 ]; then
+        log_action "EBTABLES" "DESAISLAR" "SE HA INTENTADO DESAISLAR UNA VLAN QUE NO EXISTE"
+	 echo "falta  id de la vlan"
+        exit
+    fi
+	
+    if ! $(fnc_validar_vlan_id $1) || ! $(fnc_existeix_vlan_id $1); then
+        echo " vlan id $1 no valida o no existeix"
+        log_action "EBTABLES" "DESAISLAR" "SE HA INTENTADO DESAISLAR LA VLAN CON ID $1"
+	exit
+    fi
+
+    VLANNOM=$(cat "$DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_CONF" | grep ";$1;" | cut -d';' -f1)
+    ebtables -F FORWARD_$VLANNOM
+    log_action "EBTABLES" "DESAISLAR" "SE HA DESAISLADO LA VLAN CON NOMBRE $VLANNOM"
+    echo "ebtables desailla $VLANNOM"
+}
+
+fnc_ebtables_cadena_macs_admin() {
+
+    if ebtables -L MACS_ADMIN 2> /dev/null | grep -q 'MACS_ADMIN'; then
+        ebtables -F MACS_ADMIN
+    else
+        ebtables -N MACS_ADMIN
+    fi
+
+    for LINIA in $(cat "$DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_MAC_ADMIN" | grep -v '^#'); do
+        MAC=$(echo "$LINIA" | cut -d';' -f1)
+        ebtables -A MACS_ADMIN -s $MAC -j ACCEPT
+    done
+    ebtables -A MACS_ADMIN -j DROP
+}
+
+fnc_ebtables_aplicar_macs_admin() {
+
+    VLANNOM=$(cat "$DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_CONF" | grep ";1;" | cut -d';' -f1)
+    ebtables -F FORWARD_$VLANNOM
+
+    ebtables -A FORWARD_$VLANNOM -j MACS_ADMIN
+    log_action "EBTABLES" "APLICAR MACS ADMIN" "SE HA LIMITADO EBTABLES PARA LA VLAN ADMIN A LAS MACS DE LA LISTA"
+
+    echo "ebtables vlan admin limitada a les macs de la llista"
+
+}
+
+fnc_ebtables_no_aplicar_macs_admin() {
+
+    VLANNOM=$(cat "$DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_CONF" | grep ";1;" | cut -d';' -f1)
+    ebtables -F FORWARD_$VLANNOM
+    log_action "EBTABLES" "NO APLICAR MACS ADMIN" "SE HA DESLIMITADO LA VLAN ADMIN"
+    echo "ebtables vlan admin sense limitacions"
+}
+
+fnc_estat_ebtabes() {
+
+    while IFS=';' read -r VLANNOM VLANID _; do
+        # ignora línies buides i comentaris
+        [[ -z "$VLANNOM" || "$VLANNOM" == \#* ]] && continue
+
+        if ebtables -L FORWARD_"$VLANNOM" 2> /dev/null | grep -q 'MACS_ADMIN'; then
+            echo "$VLANNOM $VLANID MACS ADMIN aplicades"
+        elif ebtables -L FORWARD_"$VLANNOM" 2> /dev/null | grep -oP 'entries:\s*\K[0-9]+' | grep -q '[1-9]'; then
+            echo "$VLANNOM $VLANID aïllada"
+        else
+            echo "$VLANNOM $VLANID desaïllada"
+        fi
+    done < "$DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_CONF"
+}
+
+fnc_configurar() {
+    if [ $# -lt 1 ]; then
+	log_action "BRIDGE" "ERROR CONFIG" "OPCIO DESCONEGUDA" "WARNING"
+        echo "Error: opció desconeguda per configurar (aillar|desaillar|aplicar_macs_admin|no_aplicar_macs_admin|mostrar|guardar|esborrar)"
+        exit
+    fi
+
+    ARG_1=$1
+    shift
+
+    # Fem switch per executar la funció que toca
+    case "$ARG_1" in
+        aillar)
+            fnc_ebtables_aillar "$1"
+            ;;
+        desaillar)
+            fnc_ebtables_desaillar "$1"
+	    ;;
+        aplicar_macs_admin)
+            fnc_ebtables_aplicar_macs_admin
+            ;;
+        no_aplicar_macs_admin)
+            fnc_ebtables_no_aplicar_macs_admin
+            ;;
+        guardar)
+            OPCIO_2=$1
+            shift
+
+            case "$OPCIO_2" in
+                vlan_nova)
+                    if [ "$#" -lt "3" ]; then
+                        echo "falta nom_interfaç vid_untag (0 si no) vids-tag (0 si no)"
+                        exit
+                    fi
+
+                    if ! fnc_validar_vlan_nom "$1" && ! fnc_existeix_vlan_nom "$1"; then
+                        echo " vlan nom $1 no valid o ja existeix"
+                        exit
+                    fi
+
+                    if ! fnc_validar_vlan_id "$2" && ! fnc_existeix_vlan_id "$2"; then
+                        echo " vlan id $2 no valida o ja existeix"
+                        exit
+                    fi
+
+                    if ! fnc_validar_ip_xarxa "$3" || grep -q ";$3;" "$DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_CONF" > /dev/null; then
+                        echo " vlan xarxa $3 no valida o ja existeix"
+                        exit
+                    fi
+
+                    if ! fnc_validar_ip_host "$4" || grep -q ";$4;" "$DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_CONF" > /dev/null; then
+                        echo " vlan host $4 no valida o ja existeix"
+                        exit
+                    fi
+
+                    if ! fnc_validar_mateixa_xarxa "$3" "$4"; then
+                        echo " ips $3 $4 no estan a la mateixa xarxa"
+                        exit
+                    fi
+
+                    FITXER="$DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_CONF"
+
+                    {
+                        grep -v ";$2;" "$FITXER"
+                        echo "$1;$2;$3;$4;"
+                    } | sort -t ';' -k2,2n -o "$FITXER"
+		    log_action "BRIDGE" "NOVA VLAN" "SE HA CREADO UNA NUEVA VLAN CON ESTA INFORMACIÓN NOMBRE VLAN: $1 VLAN ID: $2 VLAN IP XARXA: $3 VLAN IP HOST: $4"
+                    echo "vlan $1 guardada correctament"
+                    ;;
+                vlan_modificar)
+                    if [ "$#" -lt "3" ]; then
+                        echo "falta nom_interfaç vid_untag (0 si no) vids-tag (0 si no)"
+                        exit
+                    fi
+
+                    if ! fnc_existeix_vlan_nom "$1"; then
+                        echo " vlan nom $1 no existeix"
+                        exit
+                    fi
+
+                    if ! fnc_existeix_vlan_id "$2"; then
+                        echo " vlan id $2 no  existeix"
+                        exit
+                    fi
+
+                    FITXER="$DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_CONF"
+
+                    if ! fnc_validar_ip_xarxa "$3" || grep -v ";$2;" "$FITXER" | grep ";$3;" > /dev/null; then
+                        echo " vlan xarxa $3 no valida o ja existeix"
+                        exit
+                    fi
+
+                    if ! fnc_validar_ip_host "$4" || grep -v ";$2;" "$FITXER" | grep ";$4;" > /dev/null; then
+                        echo " vlan host $4 no valida o ja existeix"
+                        exit
+                    fi
+
+                    if ! fnc_validar_mateixa_xarxa "$3" "$4"; then
+                        echo " ips $3 $4 no estan a la mateixa xarxa"
+                        exit
+                    fi
+
+                    {
+                        grep -v ";$2;" "$FITXER"
+                        echo "$1;$2;$3;$4;"
+                    } | sort -t ';' -k2,2n -o "$FITXER"
+		    log_action "BRIDGE" "NOVA VLAN" "SE HA MODIFICADO LA CONFIGURACIÓN DE UNA VLAN. ESTA ES LA INFORMACIÓN NUEVA. NOMBRE VLAN: $1 VLAN ID: $2 VLAN IP XARXA: $3 VLAN IP HOST: $4"
+                    echo "vlan $1 guardada correctament"
+                    ;;
+                bridge)
+                    if [ "$#" -lt "3" ]; then
+                        echo "falta nom_interfaç vid_untag (0 si no) vids-tag (0 si no)"
+                        exit
+                    fi
+
+                    if ! fnc_validar_int "$1"; then
+                        echo " nom_interfaç $1 no valida"
+                        exit
+                    fi
+
+                    if ! fnc_validar_vlan_untag "$2"; then
+                        echo " vlan id $2 no valida"
+                        exit
+                    fi
+
+                    if ! fnc_validar_vlan_tag_llista "$3"; then
+                        echo " vlan id $3 no valida"
+                        exit
+                    fi
+
+                    RESULTAT=$(grep -v "$1;" "$DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_IF")
+                    #echo "$RESULTAT"
+                    echo "$RESULTAT" > "$DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_IF"
+                    echo "$1;$2;$3;" >> "$DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_IF"
+		    log_action "BRIDGE" "CONFIG" "SE HA MODIFICADO LA CONFIGURACIÓN DEL BRIDGE ESTA ES LA NUEVA CONFIGUARCIÓN: NOMBRE INTERFAZ: $1 VLAN_UNTAG: $2 VLAN_TAG: $3"
+                    echo "bridge $1 guardada correctament"
+                    ;;
+                mac)
+                    if [ -z "$1" ]; then
+                        echo "Error: s'espera una mac"
+                        exit 1
+                    fi
+
+                    MAC=$1
+                    if ! fnc_validar_mac "$MAC"; then
+                        echo "Error: la MAC $MAC no té un format correcte (XX:XX:XX:XX:XX:XX)"
+                        exit 1
+                    fi
+		    log_action "BRIDGE" "CONFIG" "SE HA AÑADIDO LA MAC [$MAC] A LA CADENA DE MACS PARA LA VLAN ADMIN"
+                    FITXER_MAC="$DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_MAC_ADMIN"
+
+                    if [ ! -f "$FITXER_MAC" ]; then
+                        touch "$FITXER_MAC"
+                        chmod 755 "$FITXER_MAC"
+                    fi
+
+                    if grep -q "^$MAC$" "$FITXER_MAC"; then
+                        echo "Error: La MAC $MAC ja existeix al fitxer."
+                        exit 1
+                    else
+                        echo "$MAC" >> "$FITXER_MAC"
+                    fi
+
+                    fnc_ebtables_cadena_macs_admin
+
+                    ;;
+                *)
+                    echo "Error: opció desconeguda per guardar (vlan_nova|vlan_modificar|bridge|mac)"
+                    exit 1
+                    ;;
+            esac
+            ;;
+        esborrar)
+            OPCIO_2=$1
+            shift
+            case "$OPCIO_2" in
+                vlan)
+                    VLANID=$1
+                    if [ "$VLANID" -lt 3 ]; then
+                        echo "no es pot esborrar la vlan $VLANID"
+                        exit 1
+                    fi
+
+                    RESULTAT=$(grep -v ";$VLANID;" "$DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_CONF")
+
+                    if [ -z "$RESULTAT" ]; then
+                        echo "no s'ha trobat la vlan $VLANID"
+                        exit 1
+                    fi
+
+                    echo "$RESULTAT" > "$DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_CONF"
+		    log_action "BRIDGE" "CONFIG" "SE HA BORRADO LA VLAN $VLANID" "WARNING"
+                    echo "vlan $VLANID esborrada correctament"
+                    ;;
+                bridge)
+                    if [ "$#" -lt "1" ]; then
+                        echo "falta nom_interfaç"
+                        exit
+                    fi
+
+                    if ! fnc_validar_int "$1"; then
+                        echo " nom_interfaç $1 no valida"
+                        exit
+                    fi
+
+                    RESULTAT=$(grep -v "$1;" "$DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_IF")
+                    echo "$RESULTAT" > "$DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_IF"
+		    log_action "BRIDGE" "CONFIG" "SE HA BORRADO EL BRIDGE $1" "WARNING"
+                    echo "bridge $1 esborrada correctament"
+                    ;;
+                mac)
+                    MAC=$1
+                    if [ -z "$MAC" ]; then
+                        echo "Error: s'espera una mac"
+                        exit 1
+                    fi
+
+                    FITXER_MAC="$DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_MAC_ADMIN"
+                    if [ -f "$FITXER_MAC" ]; then
+                        sed -i "/^$MAC$/d" "$FITXER_MAC"
+                        log_action "EBTABLES" "CONFIG" "SE HA BORRADO LA MAC $MAC" "WARNING"
+			echo "MAC $MAC esborrada."
+                    else
+                        echo "Error: El fitxer de MACs no existeix."
+                        exit 1
+                    fi
+
+                    fnc_ebtables_cadena_macs_admin
+                    ;;
+                *)
+                    echo "Error: opció desconeguda per esborrar (vlan|bridge|mac)"
+                    exit 1
+                    ;;
+            esac
+            ;;
+        *)
+            echo "Error: opció desconeguda per configurar (aillar|desaillar|aplicar_macs_admin|no_aplicar_macs_admin|mostrar|guardar|esborrar)"
+            ;;
+    esac
+}
+
+fnc_mostrar() {
+    OPCIO_2=$1
+    shift
+    case "$OPCIO_2" in
+        vlan)
+	    log_action "BRIDGE" "MOSTRAR" "SE HA MOSTRADO LA CONFIGURACIÓN DE LAS VLAN"
+            cat "$DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_CONF" | grep -v '^#'
+            ;;
+        bridge)
+	    log_action "BRIDGE" "MOSTRAR" "SE HA MOSTRADO LA CONFIGURACIÓN DEL BRIDGE"
+            fnc_netejar_fitxer_conf
+            cat "$DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_IF" | grep -v '^#'
+            ;;
+        mac)
+	    log_action "EBTABLES" "MOSTRAR" "SE HA MOSTRADO LA TABLA DE MACS DE ADMIN"
+            cat "$DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_MAC_ADMIN" | grep -v '^#'
+            ;;
+        *)
+            echo "Error: opció desconeguda per mostrar (vlan|bridge|mac)"
+            exit 1
+            ;;
+    esac
+}
+
+fnc_estat() {
+    log_action "BRIDGE" "ESTADO" "SE HA MOSTRADO EL ESTADO DE BRIDGE"
+    if ip -br a show dev br0 &> /dev/null; then
+        echo "$ACTIVAT"
+        echo " "
+        echo "subinterfaces"
+        for LINIA in $(cat "$DIR/$DIR_PROJECTE/$DIR_CONF/$BRIDGE_CONF" | grep -v '^#'); do
+            VLANID=$(echo "$LINIA" | cut -d';' -f2)
+            ip -4 -br a show dev br0.$VLANID
+        done
+        echo " "
+        echo "TAG, UNTAG"
+        bridge vlan show
+        echo " "
+        echo "EBTABLES"
+        ebtables -vL
+    else
+        echo "$DESACTIVAT"
+    fi
+}
+
+######################################################################
+###  MAIN
+######################################################################
+
+MSG="falta [iniciar, aturar, configurar ,estat]"
+
+# Comprovem que hi hagi almenys un argument (la opció)
+if [ $# -lt 1 ]; then
+    echo "$MSG"
+    exit 1
+fi
+
+OPCIO_1=$1
+shift
+
+# Fem switch per executar la funció que toca
+case "$OPCIO_1" in
+    iniciar)
+        fnc_iniciar $@
+        ;;
+    aturar)
+        fnc_aturar $@
+        ;;
+    configurar)
+        fnc_configurar $@
+        ;;
+    mostrar)
+        fnc_mostrar $@
+        ;;
+    estat)
+        fnc_estat $@
+        ;;
+    estat_ebtables)
+        fnc_estat_ebtabes $@
+        ;;
+    *)
+        echo "$MSG"
+        ;;
+esac

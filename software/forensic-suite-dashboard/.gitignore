@@ -1,0 +1,61 @@
+# Virtual Environments
+.venv/
+venv/
+ENV/
+runtime/
+bin/
+include/
+lib/
+lib64/
+share/
+pyvenv.cfg
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.tox/
+
+# Forensic Evidence & Dumps (Never upload RAM dumps)
+*.raw
+*.mem
+*.dmp
+*.img
+*.bin
+*.elf
+*.vmem
+*.vmsn
+*.vmsd
+*.lime
+*.aff
+*.aff4
+
+# Project Specific Data & Logs
+uploads/
+data/*
+!data/.gitkeep
+results/
+reports/*
+!reports/.gitkeep
+logs/*
+!logs/.gitkeep
+transfer_queue/
+
+# Configuration (Don't leak server IPs or SSH keys)
+config/remote_config.json
+*.key
+*.pem
+id_ed25519*
+
+# IDEs & System
+.vscode/
+.idea/
+*.swp
+*.swo
+*.bak
+.DS_Store
+Thumbs.db

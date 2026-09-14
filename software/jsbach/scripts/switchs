@@ -1,0 +1,784 @@
+#!/bin/bash
+
+source /usr/local/JSBach/conf/variables.conf
+source $DIR/$DIR_PROJECTE/$DIR_SCRIPTS/$FUNCIONS
+source /usr/local/bin/jsbach-logger.sh
+
+######################################################################
+###  Funcions
+######################################################################
+
+fnc_iniciar() {
+    fnc_modifica_totes_acl_admin
+    fnc_afegir_macs_totes_acls
+    log_action "SWITCHES" "INICIAR" "SE HAN APLICADO ACLs EN LOS SWITCHES"
+}
+
+fnc_aturar() {
+    fnc_reset_totes_acls
+    log_action "SWITCHES" "PARAR" "SE HAN DESAPLICADO ACLs EN LOS SWITCHES"
+}
+
+fnc_ping_switch() {
+    if ping -c 1 -W 1 "$1" > /dev/null 2>&1; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+fnc_estat() {
+    for linia in $(grep -v '#' "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS"); do
+        nom=$(echo "$linia" | cut -d';' -f1)
+        ip=$(echo "$linia" | cut -d';' -f2)
+        if fnc_ping_switch "$ip"; then
+            echo "$nom $ip FUNCIONA"
+        else
+            echo "$nom $ip NO_RESPON"
+        fi
+    done
+    log_action "SWITCHES" "ESTADO" "SE HA MOSTRADO EL ESTADO DE LOS SWITCHES"
+}
+
+fnc_estat_acls() {
+    for linia in $(grep -v '#' "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS"); do
+        nom=$(echo "$linia" | cut -d';' -f1)
+        ip=$(echo "$linia" | cut -d';' -f2)
+        user=$(echo "$linia" | cut -d';' -f3)
+        pass=$(echo "$linia" | cut -d';' -f4)
+        protocol=$(echo "$linia" | cut -d';' -f5)
+        MOSTRAR="$nom $ip "
+        if ! fnc_ping_switch "$ip"; then
+            MOSTRAR+="NO_RESPON"
+            echo "$MOSTRAR"
+            continue
+        fi
+
+        RESULTAT=$(fnc_expect_comand "$ip" "$user" "$pass" "$nom" "$protocol" "show access-list")
+
+        if echo "$RESULTAT" | grep -q "ACL_1"; then
+            MOSTRAR+="ACL_ADMIN "
+        else
+            MOSTRAR+="NO_ACL_ADMIN "
+        fi
+        if echo "$RESULTAT" | grep -q "ACL_2"; then
+            MOSTRAR+="ACL_MACS "
+        else
+            MOSTRAR+="NO_ACL_MACS "
+        fi
+        echo "$MOSTRAR"
+    done
+}
+
+fnc_totes_les_taula_mac() {
+    for linia in $(grep -v '#' "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS"); do
+        nom=$(echo "$linia" | cut -d';' -f1)
+        ip=$(echo "$linia" | cut -d';' -f2)
+        user=$(echo "$linia" | cut -d';' -f3)
+        pass=$(echo "$linia" | cut -d';' -f4)
+        protocol=$(echo "$linia" | cut -d';' -f5)
+        if ! fnc_ping_switch "$ip"; then
+            echo "Switch $nom $ip NO_RESPON"
+            continue
+        fi
+        fnc_expect_comand "$ip" "$user" "$pass" "$nom" "$protocol" "show mac address-table"
+    done
+}
+
+fnc_expect_comand() {
+
+    if [ $# -lt 5 ]; then
+        echo "Error expect falta ip_switch user pass nom mode comand"
+        exit 1
+    fi
+
+    IP="$1"
+    USER="$2"
+    PASS="$3"
+    NOM="$4"
+    MODE="$5"
+    COMAND="$6"
+
+    if [ "$MODE" == "telnet" ]; then
+        SPAWN_CMD="telnet $IP"
+        LOGIN_EXPECT="\"*ser*\" { send \"$USER\r\"; send \"$PASS\r\" }"
+    else
+        SPAWN_CMD="ssh -o StrictHostKeyChecking=no $USER@$IP"
+        LOGIN_EXPECT="\"*assword:*\" { send \"$PASS\r\" }"
+    fi
+
+    echo "Switch $NOM $IP"
+    expect << EOF | sed -n "\|$COMAND|,\$p" | sed '1d' | sed '/#\|>/,$d'
+set timeout 10
+log_user 1
+
+spawn $SPAWN_CMD
+
+expect {
+    $LOGIN_EXPECT
+}
+
+# Esperem el prompt inicial (>)
+expect ">"
+send "enable\r"
+
+# Prompt en mode privilegiat (#)
+expect "#"
+send "$COMAND\r"
+
+# Tornem a esperar el prompt
+expect "#"
+send "exit\r"
+
+expect ">"
+send "exit\r"
+
+expect eof
+EOF
+
+    log_action "SWITCHES" "CONFIG" "SE HAN MANDADO CONSULTAS AL SWITCH [$4]"
+}
+
+fnc_reset_acl() {
+    if [ $# -lt 5 ]; then
+        echo "Error reset_acl falta ip_switch user pass nom acl_id mode"
+        exit 1
+    fi
+
+    IP="$1"
+    USER="$2"
+    PASS="$3"
+    NOM="$4"
+    ACL="$5"
+    MODE="$6"
+
+    if [ "$MODE" == "telnet" ]; then
+        SPAWN_CMD="telnet $IP"
+        LOGIN_EXPECT="\"*ser*\" { send \"$USER\r\"; send \"$PASS\r\" }"
+    else
+        SPAWN_CMD="ssh -o StrictHostKeyChecking=no $USER@$IP"
+        LOGIN_EXPECT="\"*assword:*\" { send \"$PASS\r\" }"
+    fi
+
+    echo "Eliminant ACL $ACL al switch $NOM ($IP)"
+    expect << EOF
+set timeout 10
+log_user 0
+
+spawn $SPAWN_CMD
+
+expect {
+    $LOGIN_EXPECT
+    "*assword:*" {
+        send "$PASS\r"
+    }
+}
+
+expect ">"
+send "enable\r"
+
+expect "#"
+send "conf\r"
+
+expect "(config)#"
+send "no access-list bind $ACL\r"
+
+expect "(config)#"
+send "no access-list create $ACL\r"
+
+expect "(config)#"
+send "exit\r"
+
+expect "#"
+send "exit\r"
+
+expect ">"
+send "exit\r"
+
+expect eof
+EOF
+log_action "SWITCHES" "CONFIG" "SE HAN LIMPIADO LAS ACLs DEL SWITCH $1"
+}
+
+fnc_reset_totes_acls() {
+    for linia in $(grep -v '#' "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS"); do
+        nom=$(echo "$linia" | cut -d';' -f1)
+        ip=$(echo "$linia" | cut -d';' -f2)
+        user=$(echo "$linia" | cut -d';' -f3)
+        pass=$(echo "$linia" | cut -d';' -f4)
+        protocol=$(echo "$linia" | cut -d';' -f5)
+        if ! fnc_ping_switch "$ip"; then
+            echo "Switch $nom $ip NO_RESPON"
+            continue
+        fi
+        fnc_reset_acl "$ip" "$user" "$pass" "$nom" "1" "$protocol"
+        fnc_reset_acl "$ip" "$user" "$pass" "$nom" "2" "$protocol"
+    done
+    log_action "SWITCHES" "CONFIG" "SE HAN RESETEADO TODAS LAS ACLs"
+}
+
+fnc_afegir_macs_acl() {
+    if [ $# -lt 5 ]; then
+        echo "Error afegir_macs_acl falta ip_switch user pass nom  mode"
+        exit 1
+    fi
+
+    IP="$1"
+    USER="$2"
+    PASS="$3"
+    NOM="$4"
+    MODE="$5"
+
+    if [ "$MODE" == "telnet" ]; then
+        SPAWN_CMD="telnet $IP"
+        LOGIN_EXPECT="\"*ser*\" { send \"$USER\r\"; send \"$PASS\r\" }"
+    else
+        SPAWN_CMD="ssh -o StrictHostKeyChecking=no $USER@$IP"
+        LOGIN_EXPECT="\"*assword:*\" { send \"$PASS\r\" }"
+    fi
+
+    local MAC_COMMANDS=""
+    RULE=1
+    if [ -f "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS_MACS_BLOCADES" ]; then
+        while read -r mac; do
+            [ -z "$mac" ] && continue
+            MAC_COMMANDS+="expect \"(config)#\"\nsend \"access-list mac 2 rule $RULE deny logging disable smac $mac smask ff:ff:ff:ff:ff:ff\r\"\n"
+            RULE=$((RULE + 1))
+        done < "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS_MACS_BLOCADES"
+    fi
+
+    echo "Modificant ACL al switch $NOM ($IP)"
+    expect << EOF
+set timeout 10
+log_user 0
+
+spawn $SPAWN_CMD
+
+expect {
+    $LOGIN_EXPECT
+}
+
+expect ">"
+send "enable\r"
+
+expect "#"
+send "conf\r"
+
+expect "(config)#"
+send "no access-list bind 2\r"
+
+expect "(config)#"
+send "no access-list create 22\r"
+
+expect "(config)#"
+send "access-list create 2\r"
+
+$(printf "$MAC_COMMANDS")
+
+expect "(config)#"
+send "access-list mac 2 rule $RULE  permit logging disable\r"
+
+expect "(config)#"
+send "access-list bind 2 interface gigabitEthernet 1/0/1-7\r"
+
+expect "(config)#"
+send "exit\r"
+
+expect "#"
+send "exit\r"
+
+expect ">"
+send "exit\r"
+
+expect eof
+EOF
+
+
+}
+
+fnc_afegir_macs_totes_acls() {
+    for linia in $(grep -v '#' "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS"); do
+        nom=$(echo "$linia" | cut -d';' -f1)
+        ip=$(echo "$linia" | cut -d';' -f2)
+        user=$(echo "$linia" | cut -d';' -f3)
+        pass=$(echo "$linia" | cut -d';' -f4)
+        protocol=$(echo "$linia" | cut -d';' -f5)
+        if ! fnc_ping_switch "$ip"; then
+            echo "Switch $nom $ip NO_RESPON"
+            continue
+        fi
+        fnc_afegir_macs_acl "$ip" "$user" "$pass" "$nom" "$protocol"
+    done
+}
+
+fnc_modifica_acl_admin() {
+    if [ $# -lt 5 ]; then
+        echo "Error falta ip_switch user pass nom mode"
+        exit 1
+    fi
+
+    IP="$1"
+    USER="$2"
+    PASS="$3"
+    NOM="$4"
+    MODE="$5"
+
+    if [ "$MODE" == "telnet" ]; then
+        SPAWN_CMD="telnet $IP"
+        LOGIN_EXPECT="\"*ser*\" { send \"$USER\r\"; send \"$PASS\r\" }"
+    else
+        SPAWN_CMD="ssh -o StrictHostKeyChecking=no $USER@$IP"
+        LOGIN_EXPECT="\"*assword:*\" { send \"$PASS\r\" }"
+    fi
+
+    local MAC_COMMANDS=""
+    RULE=1
+    if [ -f "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS_MACS_VLAN_ADMIN" ]; then
+        while read -r mac; do
+            [ -z "$mac" ] && continue
+            MAC_COMMANDS+="expect \"(config)#\"\nsend \"access-list mac 1 rule $RULE permit logging disable smac $mac smask ff:ff:ff:ff:ff:ff\r\"\n"
+            RULE=$((RULE + 1))
+        done < "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS_MACS_VLAN_ADMIN"
+    fi
+
+    echo "Modificant ACL al switch $NOM ($IP)"
+
+    expect << EOF
+set timeout 10
+log_user 0
+
+spawn $SPAWN_CMD
+
+expect {
+    $LOGIN_EXPECT
+}
+
+expect ">"
+send "enable\r"
+
+expect "#"
+send "conf\r"
+
+expect "(config)#"
+send "no access-list bind 1\r"
+
+expect "(config)#"
+send "no access-list create 1\r"
+
+expect "(config)#"
+send "access-list create 1\r"
+
+$(printf "$MAC_COMMANDS")
+
+expect "(config)#"
+send "access-list mac 1 rule $RULE  deny logging disable\r"
+
+expect "(config)#"
+send "access-list bind 1 interface vlan 1\r"
+
+expect "(config)#"
+send "exit\r"
+
+expect "#"
+send "exit\r"
+
+expect ">"
+send "exit\r"
+
+expect eof
+EOF
+
+
+}
+
+fnc_modifica_totes_acl_admin() {
+    for linia in $(grep -v '#' "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS"); do
+        nom=$(echo "$linia" | cut -d';' -f1)
+        ip=$(echo "$linia" | cut -d';' -f2)
+        user=$(echo "$linia" | cut -d';' -f3)
+        pass=$(echo "$linia" | cut -d';' -f4)
+        protocol=$(echo "$linia" | cut -d';' -f5)
+        if ! fnc_ping_switch "$ip"; then
+            echo "Switch $nom $ip NO_RESPON"
+            continue
+        fi
+        fnc_modifica_acl_admin "$ip" "$user" "$pass" "$nom" "$protocol"
+    done
+}
+
+fnc_configurar() {
+    if [ $# -lt 1 ]; then
+        echo "Error falta [eliminar_switch|afegir_switch|blocar_mac|desblocar_mac|veure_macs_blocades|eliminar_mac_vlan_admin|afegir_mac_vlan_admin|veure_macs_vlan_admin|activar_acl_admin|desactivar_acl_admin]"
+	log_action "SWITCHES" "CONFIG" "SE HA INTENTADO CONFIGURAR EL MÓDULO SWITCHES SIN PARÁMETROS" "WARNING"
+        exit 1
+    fi
+
+    OPCIO_1=$1
+    shift
+
+    # Fem switch per executar la funció que toca
+    case "$OPCIO_1" in
+        eliminar_switch)
+            if [ $# -lt 2 ]; then
+                echo "Error falta nom_switch ip_switch "
+		log_action "SWITCHES" "CONFIG" "SE HA INTENTADO ELIMINAR UN SWITCH SIN PARÁMETROS" "WARNING"
+                exit 1
+            fi
+
+            Nom="$1"
+            IP="$2"
+            sed -i "/^${Nom};${IP};/d" "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS"
+	    log_action "SWITCHES" "CONFIG" "SE HA ELIMINADO EL SWITCH [$1] DE LA CONFIG LOCAL"
+            ;;
+        afegir_switch)
+            if [ $# -lt 5 ]; then
+                echo "Error falta nom_switch ip_switch user pass protocol"
+		log_action "SWITCHES" "CONFIG" "SE HA INTENTADO AÑADIR UN SWITCH SIN PARÁMETROS" "WARNING"
+                exit 1
+            fi
+
+            if ! fnc_validar_ip "$2"; then
+                echo "Error ip_switch no valida"
+		log_action "SWITCHES" "CONFIG" "SE HA INTENTADO AÑADIR UN SWITCH CON UNA IP INVÁLIDA" "WARNING"
+                exit 1
+            fi
+
+            if [ "$5" != "telnet" ] && [ "$5" != "ssh" ]; then
+                echo "Error protocol no valid"
+		log_action "SWITCHES" "CONFIG" "SE HA INTENTADO AÑADIR UN SWITCH CON UN PROTOCOLO INVÁLIDO" "WARNING"
+                exit 1
+            fi
+
+            #falta comprovar resta de parametres
+
+            echo "$1;$2;$3;$4;$5" >> "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS"
+	    log_action "SWITCHES" "CONFIG" "SE HA AÑADIDO EL SWITCH [$1] A LA CONFIG LOCAL. IP [$2], USER [$3], PASSWD [$4], MODO [$5]"
+            ;;
+        activar_acl_1)
+            if [ $# -lt 1 ]; then
+                echo "Error falta ip_switch"
+		log_action "SWITCHES" "CONFIG" "SE HA INTENTADO ACTIVAR UNA ACL SIN PARÁMETROS" "WARNING"
+                exit 1
+            fi
+
+            ip="$1"
+            INFO_SWITCH=$(grep ";${ip};" "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS")
+            nom=$(echo "$INFO_SWITCH" | cut -d';' -f1)
+            user=$(echo "$INFO_SWITCH" | cut -d';' -f3)
+            pass=$(echo "$INFO_SWITCH" | cut -d';' -f4)
+            protocol=$(echo "$INFO_SWITCH" | cut -d';' -f5)
+            if ! fnc_ping_switch "$ip"; then
+                echo "Switch $nom $ip NO_RESPON"
+                return
+            fi
+            fnc_afegir_macs_acl "$ip" "$user" "$pass" "$nom" "$protocol"
+	    log_action "SWITCHES" "CONFIG" "SE HAN ACTIVADO LAS ACLs EN EL SWITCH $nom con IP $ip"
+            echo "ACL Macs Activa"
+            ;;
+        desactivar_acl_1)
+            if [ $# -lt 1 ]; then
+                echo "Error falta ip_switch"
+		log_action "SWITCHES" "CONFIG" "SE HA INTENTADO DESACTIVAR UNA ACL SIN PARÁMETROS" "WARNING"
+                exit 1
+            fi
+
+            ip="$1"
+            INFO_SWITCH=$(grep ";${ip};" "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS")
+            nom=$(echo "$INFO_SWITCH" | cut -d';' -f1)
+            user=$(echo "$INFO_SWITCH" | cut -d';' -f3)
+            pass=$(echo "$INFO_SWITCH" | cut -d';' -f4)
+            protocol=$(echo "$INFO_SWITCH" | cut -d';' -f5)
+            if ! fnc_ping_switch "$ip"; then
+                echo "Switch $nom $ip NO_RESPON"
+                return
+            fi
+            fnc_reset_acl "$ip" "$user" "$pass" "$nom" "1" "$protocol"
+	    log_action "SWITCHES" "CONFIG" "SE HAN DESACTIVADO LAS ACLs EN EL SWITCH $nom con IP $ip"
+            echo "ACL Macs Desactivada"
+            ;;
+        blocar_mac)
+            if [ $# -lt 1 ]; then
+                echo "Error falta mac"
+		log_action "SWITCHES" "CONFIG" "SE HA INTENTADO BLOQUEAR UNA MAC SIN PARÁMETROS" "WARNING"
+                exit 1
+            fi
+
+            if [ ! -f "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS_MACS_BLOCADES" ]; then
+                echo "Creant arxiu de macs blocades"
+                touch "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS_MACS_BLOCADES"
+                chmod 775 "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS_MACS_BLOCADES"
+            fi
+
+            MAC="$1"
+
+            if ! fnc_validar_mac "$MAC"; then
+                echo "Error mac no valida"
+		log_action "SWITCHES" "CONFIG" "SE HA INTENTADO BLOQUEAR UNA MAC INVÁLIDA" "WARNING"
+                exit 1
+            fi
+
+            if [ -z "$(grep -F "$MAC" "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS_MACS_BLOCADES")" ]; then
+                printf "%s\n" "$MAC" >> "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS_MACS_BLOCADES"
+		log_action "SWITCHES" "CONFIG" "SE HA AÑADIDO LA MAC $MAC A LA CONFIG DE LAS ACLs"
+                echo "Bloquejant $MAC"
+            else
+		    log_action "SWITCHES" "CONFIG" "SE HA INTENTADO AÑADIR LA MAC $MAC A LA CONFIG DE LAS ACLs PERO YA ESTABA EN EL FICHERO" "WARNING"
+                echo "Error mac $MAC ja està blocada"
+                exit 1
+            fi
+
+            fnc_afegir_macs_totes_acls
+            ;;
+        desblocar_mac)
+            if [ $# -lt 1 ]; then
+                log_action "SWITCHES" "CONFIG" "SE HA INTENTADO DESBLOQUEAR UNA MAC SIN PARÁMETROS" "WARNING"
+		echo "Error falta mac"
+		exit 1
+            fi
+            if [ ! -f "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS_MACS_BLOCADES" ]; then
+                echo "No hi ha cap mac blocada"
+                exit 1
+            fi
+
+            MAC="$1"
+            if [ -z "$(grep -F "$MAC" "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS_MACS_BLOCADES")" ]; then
+		log_action "SWITCHES" "CONFIG" "SE HA INTENTADO DESBLOQUEAR LA MAC $MAC DE LA CONFIG DE LAC ACLs PERO NO ESTABA BLOQUEADA PREVIAMENTE" "WARNING"
+                echo "Error mac no està blocada"
+                exit 1
+            else
+                sed -i "/^${MAC}/d" "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS_MACS_BLOCADES"
+		log_action "SWITCHES" "CONFIG" "SE HA ELIMINADO LA MAC $MAC DE LA CONFIG DE LAS ACLs"
+                echo "Desbloquejant $MAC"
+            fi
+
+            fnc_afegir_macs_totes_acls
+            ;;
+        veure_macs_blocades)
+	    log_action "SWITCHES" "CONFIG" "SE HAN LISTADO LAS MACs BLOQUEADAS LOCALMENTE"
+            if [ ! -f "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS_MACS_BLOCADES" ]; then
+                echo "No hi ha cap mac blocada"
+                exit 1
+            fi
+            cat "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS_MACS_BLOCADES" | grep -v '#'
+            ;;
+        afegir_mac_vlan_admin)
+            if [ $# -lt 1 ]; then
+		log_action "SWITCHES" "CONFIG" "SE HA INTENTADO AÑADIR UNA MAC EN LA VLAN 1 SIN PARÁMETROS" "WARNING"
+                echo "Error falta mac"
+                exit 1
+            fi
+
+            if [ ! -f "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS_MACS_VLAN_ADMIN" ]; then
+                echo "Creant arxiu de macs en vlan admin"
+                touch "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS_MACS_VLAN_ADMIN"
+                chmod 775 "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS_MACS_VLAN_ADMIN"
+            fi
+
+            MAC="$1"
+            if [ -z "$(grep -F "$MAC" "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS_MACS_VLAN_ADMIN")" ]; then
+                printf "%s\n" "$MAC" >> "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS_MACS_VLAN_ADMIN"
+		log_action "SWITCHES" "CONFIG" "SE HA AÑADIDO LA MAC [$MAC] A LA CONFIG DE LAS ACLs DE LA VLAN1"
+                echo "Mac $MAC afegida a vlan admin"
+            else
+		log_action "SWITCHES" "CONFIG" "SE HA INTENTADO AÑADIR LA MAC [$MAC] A LA CONFIG DE LAS ACLs DE LA VLAN1 PERO YA SE ENCONTRABA EN EL FICHERO" "WARNING"
+                echo "Error mac $MAC ja està en vlan admin"
+                exit 1
+            fi
+
+            for linia in $(grep -v '#' "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS"); do
+                nom=$(echo "$linia" | cut -d';' -f1)
+                ip=$(echo "$linia" | cut -d';' -f2)
+                user=$(echo "$linia" | cut -d';' -f3)
+                pass=$(echo "$linia" | cut -d';' -f4)
+                protocol=$(echo "$linia" | cut -d';' -f5)
+                if ! fnc_ping_switch "$ip"; then
+                    echo "Switch $nom $ip NO_RESPON"
+                    return
+                fi
+		log_action "SWITCHES" "CONFIG" "SE HA AÑADIDO LA MAC [$MAC] AL SWITCH [$nom] EN LA VLAN1"
+                #fnc_modifica_acl_admin "$ip" "$user" "$pass" "$nom" "$protocol"
+            done
+
+            ;;
+        eliminar_mac_vlan_admin)
+            if [ $# -lt 1 ]; then
+		log_action "SWITCHES" "CONFIG" "SE HA INTENTADO ELIMINAR UNA MAC DE LAS ACLs DE LA VLAN1 SIN PARÁMETROS" "WARNING"
+                echo "Error falta mac"
+                exit 1
+            fi
+            if [ ! -f "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS_MACS_VLAN_ADMIN" ]; then
+                echo "No hi ha cap mac en vlan admin"
+                exit 1
+            fi
+
+            MAC="$1"
+            if [ -z "$(grep -F "$MAC" "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS_MACS_VLAN_ADMIN")" ]; then
+		log_action "SWITCHES" "CONFIG" "SE HA INTENTADO ELIMINAR LA MAC [$MAC] DE LA CONFIG DE ACLs DE LA VLAN1 PERO LA MAC NO SE ENCONTRABA EN EL FICHERO" "WARNING"
+                echo "Error mac no està en vlan admin"
+                exit 1
+            else
+                sed -i "/^${MAC}/d" "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS_MACS_VLAN_ADMIN"
+		log_action "SWITCHES" "CONFIG" "SE HA ELIMINADO LA MAC [$MAC] DE LA CONFIG DE ACLs DE LA VLAN1"
+                echo "Mac $MAC eliminada de vlan admin"
+            fi
+
+            for linia in $(grep -v '#' "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS"); do
+                nom=$(echo "$linia" | cut -d';' -f1)
+                ip=$(echo "$linia" | cut -d';' -f2)
+                user=$(echo "$linia" | cut -d';' -f3)
+                pass=$(echo "$linia" | cut -d';' -f4)
+                protocol=$(echo "$linia" | cut -d';' -f5)
+                if ! fnc_ping_switch "$ip"; then
+                    echo "Switch $nom $ip NO_RESPON"
+                    return
+                fi
+		
+		log_action "SWITCHES" "CONFIG" "SE HA ELIMINADO LA MAC [$MAC] DEL SWITCH [$nom] EN LA VLAN1" 
+                #fnc_modifica_acl_admin "$ip" "$user" "$pass" "$nom" "$protocol"
+            done
+
+            ;;
+        veure_macs_vlan_admin)
+	    log_action "SWITCHES" "CONFIG" "SE HAN LISTADO LAS MACs BLOQUEADAS EN LA VLAN1"
+            if [ ! -f "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS_MACS_VLAN_ADMIN" ]; then
+                echo "No hi ha cap mac en vlan admin"
+                exit 1
+            fi
+            cat "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS_MACS_VLAN_ADMIN" | grep -v '#'
+            ;;
+        activar_acl_admin)
+            if [ $# -lt 1 ]; then
+		log_action "SWITCHES" "CONFIG" "SE HA INTENTADO ACTIVAR LA ACL DE LA VLAN1 SIN PARÁMETROS" "WARNING"
+                echo "Error falta ip_switch"
+                exit 1
+            fi
+
+            ip="$1"
+            INFO_SWITCH=$(grep ";${ip};" "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS")
+            nom=$(echo "$INFO_SWITCH" | cut -d';' -f1)
+            user=$(echo "$INFO_SWITCH" | cut -d';' -f3)
+            pass=$(echo "$INFO_SWITCH" | cut -d';' -f4)
+            protocol=$(echo "$INFO_SWITCH" | cut -d';' -f5)
+            if ! fnc_ping_switch "$ip"; then
+                echo "Switch $nom $ip NO_RESPON"
+                return
+            fi
+	    log_action "SWITCHES" "CONFIG" "SE HA ACTIVADO LA ACL DE LA VLAN1 EN EL SWITCH [$nom]"
+            fnc_modifica_acl_admin "$ip" "$user" "$pass" "$nom" "$protocol"
+            echo "ACL Vlan Admin activada"
+            ;;
+        desactivar_acl_admin)
+            if [ $# -lt 1 ]; then
+		log_action "SWITCHES" "CONFIG" "SE HA INTENTADO DESACTIVAR LA ACL DE LA VLAN1 SIN PARÁMETROS" "WARNING"
+                echo "Error falta ip_switch"
+                exit 1
+            fi
+
+            ip="$1"
+            INFO_SWITCH=$(grep ";${ip};" "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS")
+            nom=$(echo "$INFO_SWITCH" | cut -d';' -f1)
+            user=$(echo "$INFO_SWITCH" | cut -d';' -f3)
+            pass=$(echo "$INFO_SWITCH" | cut -d';' -f4)
+            protocol=$(echo "$INFO_SWITCH" | cut -d';' -f5)
+            if ! fnc_ping_switch "$ip"; then
+                echo "Switch $nom $ip NO_RESPON"
+                return
+            fi
+	    log_action "SWITCHES" "CONFIG" "SE HA DESACTIVADO LA ACL DE LA VLAN1 EN EL SWITCH [$nom]"
+            fnc_reset_acl "$ip" "$user" "$pass" "$nom" "1" "$protocol"
+            echo "ACL Vlan Admin desactivada"
+            ;;
+        activar_acl_macs)
+            if [ $# -lt 1 ]; then
+		log_action "SWITCHES" "CONFIG" "SE HA INTENTADO ACTIVAR LAS ACL LOCALES EN UN SWITCH SIN PARÁMETROS" "WARNING"
+                echo "Error falta ip_switch"
+                exit 1
+            fi
+
+            ip="$1"
+            INFO_SWITCH=$(grep ";${ip};" "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS")
+            nom=$(echo "$INFO_SWITCH" | cut -d';' -f1)
+            user=$(echo "$INFO_SWITCH" | cut -d';' -f3)
+            pass=$(echo "$INFO_SWITCH" | cut -d';' -f4)
+            protocol=$(echo "$INFO_SWITCH" | cut -d';' -f5)
+            if ! fnc_ping_switch "$ip"; then
+                echo "Switch $nom $ip NO_RESPON"
+                return
+            fi
+	    log_action "SWITCHES" "CONFIG" "SE HA ACTIVADO LAS ACL LOCALES EN EL SWITCH [$nom]"
+            fnc_afegir_macs_acl "$ip" "$user" "$pass" "$nom" "$protocol"
+            echo "ACL Macs activada"
+            ;;
+        desactivar_acl_macs)
+            if [ $# -lt 1 ]; then
+		log_action "SWITCHES" "CONFIG" "SE HA INTENTADO DESACTIVAR LAS ACL LOCALES EN UN SWITCH SIN PARÁMETROS" "WARNING"
+                echo "Error falta ip_switch"
+                exit 1
+            fi
+
+            ip="$1"
+            INFO_SWITCH=$(grep ";${ip};" "$DIR/$DIR_PROJECTE/$DIR_CONF/$SWITCHS")
+            nom=$(echo "$INFO_SWITCH" | cut -d';' -f1)
+            user=$(echo "$INFO_SWITCH" | cut -d';' -f3)
+            pass=$(echo "$INFO_SWITCH" | cut -d';' -f4)
+            protocol=$(echo "$INFO_SWITCH" | cut -d';' -f5)
+            if ! fnc_ping_switch "$ip"; then
+                echo "Switch $nom $ip NO_RESPON"
+                return
+            fi
+
+	    log_action "SWITCHES" "CONFIG" "SE HA DESACTIVADO LAS ACL LOCALES EN EL SWITCH [$nom]"
+            fnc_reset_acl "$ip" "$user" "$pass" "$nom" "2" "$protocol"
+            echo "ACL Macs desactivada"
+            ;;
+        *)
+            echo "$MSG"
+            ;;
+    esac
+}
+
+######################################################################
+###  MAIN
+######################################################################
+
+MSG="falta [iniciar, aturar, estat, estat_acls, configurar, taula_mac, totes_les_taula_mac]"
+
+# Comprovem que hi hagi almenys un argument (la opció)
+if [ $# -lt 1 ]; then
+    echo "$MSG"
+    exit 1
+fi
+
+OPCIO_1=$1
+shift
+
+# Fem switch per executar la funció que toca
+case "$OPCIO_1" in
+    iniciar)
+        fnc_iniciar
+        ;;
+    aturar)
+        fnc_aturar
+        ;;
+    estat)
+        fnc_estat $@
+        ;;
+    estat_acl)
+        fnc_busca_acls_al_switch $@
+        ;;
+    estat_acls)
+        fnc_estat_acls $@
+        ;;
+    configurar)
+        fnc_configurar $@
+        ;;
+    taula_mac)
+        fnc_taula_mac $@
+        ;;
+    totes_les_taula_mac)
+        fnc_totes_les_taula_mac $@
+        ;;
+    *)
+        echo "$MSG"
+        ;;
+esac

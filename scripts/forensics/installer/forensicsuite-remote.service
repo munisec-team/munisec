@@ -1,0 +1,15 @@
+[Unit]
+Description=Forensic Suite Remote Transfer Service
+After=network.target
+
+[Service]
+Type=simple
+User=PLACEHOLDER_USER
+WorkingDirectory=PLACEHOLDER_BASE_DIR
+Environment="PYTHONPATH=PLACEHOLDER_BASE_DIR/backend"
+ExecStart=PLACEHOLDER_BASE_DIR/runtime/bin/python -u PLACEHOLDER_BASE_DIR/installer/remote_service.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

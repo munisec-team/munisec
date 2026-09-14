@@ -1,0 +1,82 @@
+#!/bin/bash
+source /usr/local/bin/jsbach-logger.sh
+source /usr/local/JSBach/conf/variables.conf
+source $DIR/$DIR_PROJECTE/$DIR_CONF/$IFWAN_CONF
+
+######################################################################
+###  Funcions
+######################################################################
+
+fnc_iniciar() {
+    ESTAT=$(fnc_estat)
+    if [[ "$ESTAT" == $ACTIVAT* ]]; then
+        echo "Ja esta activat"
+        exit 1
+    fi
+
+    log_action "ENRUTAR" "INICIAR" "SE HA INICIADO EL ENRUTAR"
+    echo "Iniciant enrutament"
+    echo 1 > /proc/sys/net/ipv4/ip_forward
+    iptables -t nat -A POSTROUTING -o $IFW_IFWAN -j MASQUERADE
+
+    sed -i 's/^enrutar;.*/enrutar;ACTIVAT/' "$DIR/$DIR_PROJECTE/$DIR_CONF/$SERVEIS"
+
+}
+
+fnc_aturar() {
+    ESTAT=$(fnc_estat)
+    if [[ "$ESTAT" == $DESACTIVAT* ]]; then
+        echo "Ja esta desactivat"
+        exit 1
+    fi
+    log_action "ENRUTAR" "PARADO" "SE HA PARADO EL ENRUTAR"
+    echo "Aturant enrutament"
+    echo 0 > /proc/sys/net/ipv4/ip_forward
+    iptables -t nat -D POSTROUTING -o $IFW_IFWAN -j MASQUERADE
+
+    sed -i 's/^enrutar;.*/enrutar;DESACTIVAT/' "$DIR/$DIR_PROJECTE/$DIR_CONF/$SERVEIS"
+}
+
+fnc_estat() {
+
+    log_action "ENRUTAR" "ESTADO" "SE HA MOSTRADO EL ESTADO ENRUTAR"
+    if [ "$(cat /proc/sys/net/ipv4/ip_forward)" -eq 1 ] && iptables -t nat -C POSTROUTING -o "$IFW_IFWAN" -j MASQUERADE 2> /dev/null; then
+        echo "$ACTIVAT"
+        echo ""
+        echo "Taula d'encaminament"
+        ip r l
+    else
+        echo "$DESACTIVAT"
+    fi
+}
+
+######################################################################
+###  MAIN
+######################################################################
+
+MSG="falta [iniciar, aturar, configurar ,estat]"
+
+# Comprovem que hi hagi almenys un argument (la opció)
+if [ $# -lt 1 ]; then
+    echo "$MSG"
+    exit 1
+fi
+
+OPCIO_1=$1
+shift
+
+# Fem switch per executar la funció que toca
+case "$OPCIO_1" in
+    iniciar)
+        fnc_iniciar $@
+        ;;
+    aturar)
+        fnc_aturar $@
+        ;;
+    estat)
+        fnc_estat $@
+        ;;
+    *)
+        echo "$MSG"
+        ;;
+esac
